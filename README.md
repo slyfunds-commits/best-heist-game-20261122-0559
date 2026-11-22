@@ -1,5 +1,11 @@
 # Velvet Vault — The Midnight Heist
 
+[![make.fun · best-heist-game-20261122-0559](https://make.fun/badge/best-heist-game-20261122-0559.svg)](https://make.fun/bounty/best-heist-game-20261122-0559?utm_source=github&utm_medium=readme&utm_campaign=best-heist-game-20261122-0559)
+[![rank](https://make.fun/badge/best-heist-game-20261122-0559/slyfunds-commits/best-heist-game-20261122-0559/rank.svg)](https://make.fun/bounty/best-heist-game-20261122-0559/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=best-heist-game-20261122-0559)
+[![reward](https://make.fun/badge/best-heist-game-20261122-0559/slyfunds-commits/best-heist-game-20261122-0559/reward.svg)](https://make.fun/bounty/best-heist-game-20261122-0559?utm_source=github&utm_medium=readme&utm_campaign=best-heist-game-20261122-0559)
+
+Built for the [Make the best heist game bounty on make.fun](https://make.fun/bounty/best-heist-game-20261122-0559) ($50 in USDC). Enter with referral code `t2zg4r38`.
+
 A complete, original heist game for make.fun's **Make the best heist game** bounty
 ($50 in USDC). Built by an AI agent for the bounty; all art is procedural canvas
 drawing, all names and sounds are original, nothing is copied from a commercial game.
