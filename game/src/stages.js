@@ -1,16 +1,18 @@
-// The three stages of the heist: I · The Lobby, II · The Gallery, III · The Vault.
-// Each map is a 21x16 grid: '#' wall, '.' floor, 'v' vent shaft (thief only),
-// 'b' balcony (thief only), 'S' stairs up to the balcony, 'X' the vault, 'E' the exit,
-// 'T' the main-floor entry, 'D' a display case (blocks movement), 'C'/'G'/'L' are
-// markers only — guards, cameras and loot come from the lists below, so a miscounted
-// letter can never break the game. Rows are padded/truncated to 21 on load.
+// The three rooms of the Aldermere, each with its own look inside the same
+// dark-navy and gold night. The Lobby is marble and red carpet; the Gallery is
+// paintings in four loud colours behind glass; the Vault is gold, crown jewels
+// and chandeliers — and the Curator walking his loop around the vault. The maps
+// are 21x16 grids: '#' wall, '.' floor, 'v' vent (thief only), 'b' balcony
+// (thief only), 'S' stairs, 'X' the vault, 'E' the exit, 'T' the front door,
+// 'D' a display case (blocks movement). 'C', 'G' and 'L' are markers only —
+// guards, cameras and loot come from the lists, so a stray letter can never
+// break the game. Rows are padded or cut to 21 on load.
 //
-// Layout rules every map follows (checked by flood fill in the playtest):
-// - three chambers (left / middle / right) split by walls at col 6 and col 13;
-// - the col-6 wall has a main-floor door at row 8 and thief-only vent doors at rows 3-4;
-// - the col-13 wall has the balcony stairs at row 2 and a main-floor door at row 10;
-// - every loot tile, the vault and the exit are reachable from the thief spawn;
-// - every guard waypoint's straight lines run through floor only, never a wall.
+// Every map keeps the round-1 layout rules, checked by flood fill in the
+// playtest: three chambers split by walls at col 6 and col 13, a main-floor
+// door and thief-only vent doors, balcony stairs at row 2, every loot tile,
+// the vault and the exit reachable from the thief spawn, and every guard
+// waypoint's straight lines running through floor only.
 import { TILE } from './config.js';
 
 function normalizeMap(rows) {
@@ -31,7 +33,12 @@ export const STAGES = [
     short: 'The Lobby',
     lootTarget: 1200,
     timeLimit: 180,
-    briefing: 'The front hall. Two patrollers, one camera. Learn the cones.',
+    briefing: 'Marble, red carpet, two patrollers. Learn the cones.',
+    look: {
+      floorA: '#241d33', floorB: '#2a2140', wall: '#332847', rug: '#5a1f3d',
+      rugTrim: '#c9a227', painting: ['#7a4a2a', '#2a5a4a', '#4a2a5a', '#8a6a1a'],
+      prop: 'busts',
+    },
     map: normalizeMap([
       '#####################',
       '#T....#......#bbbbbb#',
@@ -75,7 +82,12 @@ export const STAGES = [
     short: 'The Gallery',
     lootTarget: 2400,
     timeLimit: 150,
-    briefing: 'Paintings worth dying for. A hound, a drone, two cameras.',
+    briefing: 'Four loud paintings, a hound, a drone, two cameras.',
+    look: {
+      floorA: '#1c2438', floorB: '#202a44', wall: '#2c3350', rug: '#1f3d33',
+      rugTrim: '#7ddb8f', painting: ['#c94a2a', '#2a7a8a', '#8a2a6a', '#d8a41a'],
+      prop: 'cases',
+    },
     map: normalizeMap([
       '#####################',
       '#T....#......#bbbbbb#',
@@ -95,7 +107,10 @@ export const STAGES = [
       '#####################',
     ]),
     loot: [
-      { name: 'SUNFLOWER CANVAS', value: 600, tx: 9, ty: 2 },
+      // The Sunflower Canvas sits at (5,2), clear of KETTLE's patrol square
+      // (cols 8–11, rows 2–4): at (9,2) the guard's name printed on top of the
+      // painting's name whenever he crossed the top of his loop.
+      { name: 'SUNFLOWER CANVAS', value: 600, tx: 5, ty: 2 },
       { name: 'RUBY CROWN', value: 700, tx: 18, ty: 4 },
       { name: 'IVORY CHESS SET', value: 500, tx: 8, ty: 9 },
       { name: 'GOLDEN LYRE', value: 600, tx: 16, ty: 9 },
@@ -123,7 +138,12 @@ export const STAGES = [
     short: 'The Vault',
     lootTarget: 3600,
     timeLimit: 120,
-    briefing: 'The crown jewels. Everything the museum has — and a wraith.',
+    briefing: 'Gold, crown jewels — and THE CURATOR walking his loop.',
+    look: {
+      floorA: '#2e2410', floorB: '#332a14', wall: '#4a3a10', rug: '#6b4a10',
+      rugTrim: '#ffe9a3', painting: ['#ffd75e', '#ff8c42', '#ffe9a3', '#c9a227'],
+      prop: 'chandeliers',
+    },
     map: normalizeMap([
       '#####################',
       '#T..#....#...#bbbbbb#',
@@ -161,6 +181,10 @@ export const STAGES = [
       { name: 'CAM-5', tx: 14, ty: 6, angle: Math.PI / 2, sweep: 0.7 },
       { name: 'CAM-6', tx: 14, ty: 11, angle: Math.PI, sweep: 0.6 },
     ],
+    boss: {
+      name: 'THE CURATOR',
+      waypoints: [[14, 12], [18, 12], [18, 14], [14, 14]],
+    },
     vault: { tx: 16, ty: 13 },
     exit: { tx: 17, ty: 7 },
     thiefMain: { tx: 1, ty: 1 },

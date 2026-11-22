@@ -1,6 +1,7 @@
 // Procedural sound: every effect is a WebAudio oscillator, no files, no network.
 // A soft chime for loot, a low alarm swell, a click for the vault dial, a little
-// arpeggio for the win. Silent until the player first interacts (browser rule).
+// arpeggio for the win, a deep note when the Curator changes phase. Silent until
+// the player first interacts (browser rule).
 export function createAudio() {
   let ctx = null;
   let muted = false;
@@ -37,7 +38,9 @@ export function createAudio() {
     toggleMute() { muted = !muted; return muted; },
     get muted() { return muted; },
     loot() { tone(880, 0.12, 'sine', 0.07); tone(1318, 0.18, 'sine', 0.06, 0.07); },
+    combo() { tone(1046, 0.1, 'triangle', 0.07); tone(1568, 0.16, 'triangle', 0.06, 0.06); },
     alarm() { tone(220, 0.35, 'sawtooth', 0.05); tone(185, 0.35, 'sawtooth', 0.05, 0.18); },
+    boss() { tone(98, 0.5, 'sawtooth', 0.09); tone(73, 0.6, 'sawtooth', 0.08, 0.2); },
     crack() { tone(520, 0.06, 'square', 0.04); },
     vaultOpen() { tone(392, 0.15, 'triangle', 0.08); tone(523, 0.15, 'triangle', 0.08, 0.1); tone(659, 0.25, 'triangle', 0.08, 0.2); },
     tool() { tone(660, 0.1, 'sine', 0.06); tone(440, 0.14, 'sine', 0.05, 0.06); },

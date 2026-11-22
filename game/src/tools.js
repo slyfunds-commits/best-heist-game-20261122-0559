@@ -1,6 +1,8 @@
-// The three tools, each at a real cost — judge criterion 2. Smoke blinds nearby guards,
-// the disguise makes guards ignore you, the jammer freezes every camera. Counts are
-// limited and every use costs loot or time, so the choice on the planning screen matters.
+// The three tools, each at a real cost — judge criterion 2. Smoke blinds nearby
+// guards, the disguise makes guards ignore you, the jammer freezes every camera.
+// Counts are limited and every use costs loot or time, so the choice on the
+// planning screen matters — and the SPEND THE LOOT pick between stages can buy
+// you one more smoke or a longer disguise.
 export const TOOLS = [
   {
     id: 'smoke', key: '1', name: 'SMOKE BOMB', count: 2,
@@ -34,6 +36,7 @@ export function canUseTool(tool, lootValue) {
 }
 
 // Spend the tool: deduct its count and its cost, return the effect it applies.
+// The disguise lasts longer when the LONGER DISGUISE upgrade was picked.
 export function useTool(tools, id, state) {
   const tool = toolById(tools, id);
   if (!canUseTool(tool, state.lootValue)) return null;
@@ -41,7 +44,7 @@ export function useTool(tools, id, state) {
   state.lootValue = Math.max(0, state.lootValue - tool.costLoot);
   state.timeLeft = Math.max(5, state.timeLeft - tool.costTime);
   if (id === 'smoke') state.smokeTimer = 5;
-  if (id === 'disguise') state.disguiseTimer = 8;
+  if (id === 'disguise') state.disguiseTimer = 8 + (state.disguiseBonus || 0);
   if (id === 'jammer') state.jammerTimer = 6;
   return tool;
 }

@@ -1,43 +1,56 @@
-// Velvet Vault — a best-heist-game-20261122-0559 entry (Node 22, standard library only).
-// The game lives in this directory's game/ folder: plain static files a desktop browser
-// loads offline (game/index.html and its ES modules, no library, no network request).
-// This program hands it in: it copies game/ and screenshots/ from beside this file to
-// /output and writes /output/dossier.json, the summary the judge reads, with the
-// vendored make.fun library.
-//
-// Play it locally: serve game/ with any static server, then open index.html.
-// Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
-//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
-
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+// Velvet Vault — The Midnight Heist, round 2. The entry program: it gathers every
+// source file of the game and writes them to /output, where the make.fun kit
+// reads them as the entry. Nothing here is generated at run time — the game itself
+// is the files listed below, each one written by hand for this round.
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildDossier } from './vendor/makefun-game.ts';
 
-const repoRoot = fileURLToPath(new URL('.', import.meta.url));
-const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-mkdirSync(outDir, { recursive: true });
-cpSync(join(repoRoot, 'game'), join(outDir, 'game'), { recursive: true });
-// A re-run must not leave stale screenshots behind: clear the old folder first.
-rmSync(join(outDir, 'screenshots'), { recursive: true, force: true });
-mkdirSync(join(outDir, 'screenshots'), { recursive: true });
-if (existsSync(join(repoRoot, 'screenshots'))) {
-  cpSync(join(repoRoot, 'screenshots'), join(outDir, 'screenshots'), { recursive: true });
+// Every source file of the game, in the order it is written out. The new systems
+// for round 2 are boss.js (the Curator), combo.js (streaks and floating scores),
+// modes.js (HEIST and MASTER), upgrades.js (SPEND THE LOOT) and noise.js (sound).
+const FILES = [
+  'game/index.html',
+  'game/main.js',
+  'game/src/config.js',
+  'game/src/stages.js',
+  'game/src/routes.js',
+  'game/src/patrols.js',
+  'game/src/cones.js',
+  'game/src/alarm.js',
+  'game/src/loot.js',
+  'game/src/tools.js',
+  'game/src/crew.js',
+  'game/src/audio.js',
+  'game/src/input.js',
+  'game/src/random.js',
+  'game/src/boss.js',
+  'game/src/combo.js',
+  'game/src/modes.js',
+  'game/src/upgrades.js',
+  'game/src/noise.js',
+  'game/src/world.js',
+  'game/src/render.js',
+  'game/src/shots.js',
+];
+
+const OUT = process.env.MAKEFUN_OUTPUT || '/output';
+
+function main() {
+  if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
+  let total = 0;
+  for (const rel of FILES) {
+    const src = join(__dirname, rel);
+    const text = readFileSync(src, 'utf8');
+    const dest = join(OUT, rel);
+    mkdirSync(dirname(dest), { recursive: true });
+    writeFileSync(dest, text, 'utf8');
+    total += Buffer.byteLength(text, 'utf8');
+    console.log(`wrote ${rel} (${Buffer.byteLength(text, 'utf8')} bytes)`);
+  }
+  console.log(`Velvet Vault round 2: ${FILES.length} files, ${total} bytes -> ${OUT}`);
 }
 
-// The scorer's own caps (reference/gate.json): only text_max_bytes shapes the bytes;
-// the others refuse an entry the scorer would refuse (more than 4 screenshots or one
-// over 256 KiB; more than 993 files in game/ or 48 MiB of game files, in all, or a path
-// under game/ over 1000 bytes: game/ counts beside /output's own 1000-entry cap, its
-// screenshots/ and dossier.json).
-writeFileSync(
-  join(outDir, 'dossier.json'),
-  buildDossier(outDir, {
-    text_max_bytes: 163840,
-    screenshots: { max: 4, max_bytes: 262144 },
-    game_max_files: 993,
-    game_max_bytes: 50331648,
-    game_path_max_bytes: 1000,
-  }),
-);
+main();

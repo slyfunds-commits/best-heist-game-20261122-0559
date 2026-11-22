@@ -1,6 +1,8 @@
-// Loot and the vault: every glowing piece has a name and a value, and the vault only
-// opens once the stage loot target is met. Stand at the vault and hold E to crack it —
-// three seconds on the dial — then reach the exit. Grabbing loot is what pays for tools.
+// Loot and the vault: every glowing piece has a name and a value, and the vault
+// only opens once the stage loot target is met. Stand at the vault and hold E to
+// crack it — three seconds on the dial — then reach the exit. Grabbing loot is
+// what pays for tools, and in stage III the same dial is what wounds the Curator:
+// every second of cracking is a point off his health bar.
 import { TILE, CRACK_SECONDS } from './config.js';
 import { stageTileCenter } from './stages.js';
 

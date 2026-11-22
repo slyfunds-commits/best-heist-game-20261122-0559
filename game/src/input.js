@@ -1,6 +1,8 @@
-// Keyboard + mouse input for Velvet Vault. WASD/arrows move, Shift runs, E cracks the
-// vault, 1/2/3 fire tools, P pauses, M mutes, Space/Enter confirms. Click-to-walk sets a
-// target tile the world steers toward. Actions are consumed once per frame.
+// Keyboard + mouse input for Velvet Vault round 2. WASD or arrows move, Shift
+// runs (loud — watch the noise meter), E cracks the vault, 1/2/3 fire tools, P
+// pauses, M mutes, Space or Enter confirms. Click-to-walk sets a target tile the
+// world steers toward. Actions are consumed once per frame, however many fixed
+// steps the frame runs.
 export const ACTION_CONFIRM = 1;
 export const ACTION_PAUSE = 2;
 export const ACTION_CRACK = 4;

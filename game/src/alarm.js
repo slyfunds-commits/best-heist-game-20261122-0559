@@ -1,16 +1,18 @@
-// The alarm: rises while any watcher sees the thief, falls when nobody does. At 100%
-// the museum locks down — SPOTTED — and a life is on the line; break line of sight and
-// the alarm stands down to 40%. The wanted level (1–5 stars) follows the alarm, and a
-// caught moment is always fair: the escape route stays open while the banner is up.
+// The alarm: it climbs while any watcher has eyes on the thief and falls when
+// nobody does. At 100% the museum locks down — SPOTTED — and a life is on the
+// line; break line of sight and it stands down to 40%. The wanted level (one to
+// five stars) follows the alarm. MASTER mode and the SLOWER ALARM upgrade change
+// the climb rate, so the same cone is more dangerous on a MASTER run. A caught
+// moment is always fair: the escape route stays open while the banner is up.
 import { ALARM_RISE_PER_SEC, ALARM_DECAY_PER_SEC, ALARM_SPOTTED_AT, ALARM_STANDDOWN_AT } from './config.js';
 
 export function createAlarm() {
   return { value: 0, spotted: false, standdownTimer: 0 };
 }
 
-export function raiseAlarm(alarm, dt, seen, closeness) {
+export function raiseAlarm(alarm, dt, seen, closeness, rateMult = 1) {
   if (seen) {
-    alarm.value = Math.min(1, alarm.value + ALARM_RISE_PER_SEC * closeness * dt);
+    alarm.value = Math.min(1, alarm.value + ALARM_RISE_PER_SEC * closeness * rateMult * dt);
     alarm.standdownTimer = 0;
   } else {
     alarm.value = Math.max(0, alarm.value - ALARM_DECAY_PER_SEC * dt);

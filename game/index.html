@@ -1,188 +1,203 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Velvet Vault — The Midnight Heist</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root { color-scheme: dark; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; overflow: hidden; background: #0c0a14; }
-  body { font-family: Georgia, 'Times New Roman', serif; color: #f3e9c8; }
-  #app { width: 1280px; height: 800px; margin: 0 auto; display: flex; flex-direction: column;
-         background: linear-gradient(180deg, #171226 0%, #0c0a14 100%); }
-  /* ---------- top HUD ---------- */
-  #hud { display: flex; align-items: stretch; gap: 0; padding: 8px 12px 6px;
-         background: #1b1530; border-bottom: 2px solid #c9a227; }
-  .hud-block { padding: 0 14px; border-right: 1px solid #3a2f5e; }
-  .hud-block:last-child { border-right: none; }
-  .hud-label { font-size: 10px; letter-spacing: 2px; color: #b9a86a; text-transform: uppercase; }
-  .hud-value { font-size: 22px; font-weight: bold; color: #ffe9a3; line-height: 1.15; }
-  .hud-sub { font-size: 12px; color: #cfc4a0; }
-  #alarmWrap { width: 210px; }
-  #alarmBar { height: 14px; background: #2a2140; border: 1px solid #6b5a2a; margin-top: 3px; }
-  #alarmFill { height: 100%; width: 0%; background: #2fbf5a; transition: width .2s, background .2s; }
-  #wanted { color: #ffb347; letter-spacing: 2px; }
-  /* ---------- middle row ---------- */
-  #mid { flex: 1; display: flex; gap: 10px; padding: 8px 12px; min-height: 0; }
-  #stageWrap { position: relative; width: 860px; height: 640px; flex: none; }
-  #game { width: 860px; height: 640px; display: block; background: #141021;
-          border: 2px solid #4a3a6e; }
-  /* ---------- right rail ---------- */
-  #rail { width: 386px; flex: none; display: flex; flex-direction: column; gap: 8px;
-          overflow: hidden; font-size: 13px; }
-  .panel { background: #1a1428; border: 1px solid #4a3a6e; padding: 8px 10px; }
-  .panel h2 { font-size: 13px; letter-spacing: 2px; color: #ffd75e; margin-bottom: 5px;
-              text-transform: uppercase; border-bottom: 1px solid #3a2f5e; padding-bottom: 3px; }
-  .plan-row { display: flex; justify-content: space-between; padding: 3px 0; }
-  .plan-row.current { color: #ffe9a3; font-weight: bold; }
-  .plan-row.done { color: #7ddb8f; }
-  .plan-row .tgt { color: #b9a86a; white-space: nowrap; }
-  .threat { display: flex; gap: 7px; padding: 2px 0; align-items: baseline; }
-  .chip { flex: none; width: 12px; height: 12px; border-radius: 50%; display: inline-block;
-          border: 1px solid #000; }
-  .threat b { color: #ffe9a3; font-size: 12px; letter-spacing: 1px; }
-  .threat span { color: #cfc4a0; font-size: 12px; }
-  .tool-row { display: flex; gap: 6px; }
-  .tool { flex: 1; background: #241c3d; border: 1px solid #6b5a2a; padding: 5px 6px;
-          text-align: center; cursor: pointer; }
-  .tool.used-up { opacity: .45; }
-  .tool b { display: block; color: #ffe9a3; font-size: 12px; }
-  .tool .cnt { display: block; font-size: 16px; color: #fff; }
-  .tool .cost { display: block; font-size: 10px; color: #b9a86a; }
-  .tool .key { display: block; font-size: 10px; color: #8f86b8; }
-  .crew-line { color: #cfc4a0; padding: 1px 0; }
-  .crew-line b { color: #ffd75e; }
-  /* ---------- overlays on the canvas ---------- */
-  .overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
-             background: rgba(8, 6, 16, .82); z-index: 5; }
-  .overlay.show { display: flex; }
-  .card { width: 640px; max-height: 628px; overflow: auto; background: #1b1530;
-          border: 2px solid #c9a227; padding: 12px 20px; }
-  .card h1 { font-size: 26px; color: #ffd75e; letter-spacing: 1px; text-align: center; }
-  .card h3 { font-size: 13px; letter-spacing: 2px; color: #b9a86a; margin: 8px 0 3px;
-             text-transform: uppercase; }
-  .card p { font-size: 14px; color: #e8dcb8; line-height: 1.45; }
-  .counts { text-align: center; color: #ffe9a3; font-size: 15px; margin: 6px 0 2px; letter-spacing: 1px; }
-  .route-pick { display: flex; gap: 8px; margin-top: 6px; }
-  .route { flex: 1; background: #241c3d; border: 1px solid #6b5a2a; padding: 6px; cursor: pointer;
-           text-align: center; }
-  .route.sel { border-color: #ffd75e; background: #33284f; box-shadow: 0 0 0 1px #ffd75e inset; }
-  .route b { display: block; color: #ffe9a3; font-size: 13px; letter-spacing: 1px; }
-  .route span { font-size: 11px; color: #cfc4a0; }
-  .bigbtn { display: block; margin: 10px auto 0; padding: 8px 30px; font-size: 18px;
-            font-family: inherit; letter-spacing: 2px; color: #1b1530; background: #ffd75e;
-            border: none; cursor: pointer; font-weight: bold; }
-  .bigbtn:hover { background: #ffe9a3; }
-  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
-  .stat-box { background: #241c3d; border: 1px solid #6b5a2a; padding: 12px; text-align: center; }
-  .stat-box .lab { font-size: 11px; letter-spacing: 2px; color: #b9a86a; }
-  .stat-box .val { font-size: 30px; font-weight: bold; color: #ffe9a3; }
-  #newBest { text-align: center; color: #7ddb8f; font-size: 20px; font-weight: bold;
-             letter-spacing: 2px; display: none; }
-  /* SPOTTED banner */
-  #spotted { position: absolute; top: 74px; left: 50%; transform: translateX(-50%); z-index: 4;
-             display: none; background: #a31212; color: #fff; font-size: 26px; font-weight: bold;
-             letter-spacing: 4px; padding: 8px 26px; border: 2px solid #ff6b6b; }
-  #spotted.show { display: block; }
-  #spotted small { display: block; font-size: 12px; letter-spacing: 1px; text-align: center; }
-  /* ---------- bottom bar ---------- */
-  #bottom { display: flex; align-items: center; gap: 16px; padding: 6px 12px 8px;
-            background: #1b1530; border-top: 2px solid #c9a227; }
-  #radio { flex: 1; font-style: italic; color: #ffd75e; font-size: 15px; white-space: nowrap;
-           overflow: hidden; text-overflow: ellipsis; }
-  #winlose { font-size: 12px; color: #b9a86a; letter-spacing: .5px; }
-  #controls { font-size: 12px; color: #8f86b8; }
-  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0c0a14;
+    color: #f3e9c8;
+    font-family: Georgia, 'Times New Roman', serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+  header {
+    width: 860px;
+    max-width: 96vw;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 4px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  h1 { font-size: 22px; margin: 0; color: #ffd75e; letter-spacing: 1px; }
+  .subtitle { font-size: 12px; color: #b8a86a; font-style: italic; }
+  .hud {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 14px;
+    align-items: center;
+  }
+  .hud b { color: #ffd75e; }
+  .meter {
+    display: inline-block;
+    width: 90px;
+    height: 10px;
+    background: #1b1530;
+    border: 1px solid #c9a227;
+    vertical-align: middle;
+  }
+  .meter > span { display: block; height: 100%; background: #e82a2a; width: 0%; }
+  .meter.noise > span { background: #4ecdc4; }
+  .meter.combo { width: 60px; }
+  .meter.combo > span { background: #ffd75e; }
+  #alarm-label { font-size: 12px; color: #ff8c42; }
+  main { width: 860px; max-width: 96vw; }
+  canvas {
+    width: 860px;
+    max-width: 96vw;
+    height: auto;
+    background: #12101e;
+    border: 2px solid #c9a227;
+    display: block;
+  }
+  .panel {
+    background: #12101e;
+    border: 1px solid #c9a227;
+    padding: 14px 16px;
+    margin-top: 10px;
+  }
+  .panel h2 { margin: 0 0 8px; font-size: 16px; color: #ffd75e; letter-spacing: 1px; }
+  .panel p { margin: 4px 0; font-size: 14px; line-height: 1.5; }
+  .panel ul { margin: 6px 0; padding-left: 20px; font-size: 14px; line-height: 1.6; }
+  .panel .tag { color: #b8a86a; font-size: 12px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid .panel { margin-top: 0; }
+  button {
+    font-family: Georgia, serif;
+    font-size: 15px;
+    background: #c9a227;
+    color: #0c0a14;
+    border: none;
+    padding: 10px 18px;
+    cursor: pointer;
+    margin: 6px 6px 0 0;
+    font-weight: bold;
+  }
+  button:hover { background: #ffd75e; }
+  button.secondary { background: #2a2140; color: #f3e9c8; border: 1px solid #c9a227; }
+  button.secondary:hover { background: #3a2f5a; }
+  button.selected { background: #ffd75e; outline: 2px solid #fff3c8; }
+  .radio { color: #8f86b8; font-style: italic; }
+  .big { font-size: 26px; color: #ffd75e; }
+  .win-line { font-size: 18px; color: #7ddb8f; }
+  .hidden { display: none !important; }
+  #win, #over { text-align: center; }
+  #win .score { font-size: 34px; color: #ffd75e; margin: 8px 0; }
+  table.breakdown { margin: 10px auto; border-collapse: collapse; font-size: 15px; }
+  table.breakdown td { padding: 4px 16px; border-bottom: 1px solid #2a2140; text-align: right; }
+  table.breakdown td:first-child { text-align: left; }
+  .upgrade-card {
+    background: #12101e;
+    border: 1px solid #c9a227;
+    padding: 12px;
+    margin: 8px 0;
+    cursor: pointer;
+  }
+  .upgrade-card:hover { background: #1e1836; border-color: #ffd75e; }
+  .upgrade-card b { color: #ffd75e; font-size: 16px; }
+  .upgrade-card p { margin: 4px 0 0; font-size: 13px; color: #b8a86a; }
+  footer { font-size: 12px; color: #8f86b8; padding: 12px; text-align: center; }
+  kbd { background: #2a2140; border: 1px solid #c9a227; padding: 1px 6px; border-radius: 3px; font-size: 12px; }
 </style>
 </head>
 <body>
-<div id="app">
-  <div id="hud">
-    <div class="hud-block"><div class="hud-label">Stage</div><div class="hud-value" id="hudStage">I · The Lobby</div><div class="hud-sub" id="hudStageSub">Loot target $1,200</div></div>
-    <div class="hud-block"><div class="hud-label">Loot</div><div class="hud-value" id="hudLoot">$0</div><div class="hud-sub" id="hudLootSub">of $1,200 target</div></div>
-    <div class="hud-block"><div class="hud-label">Time</div><div class="hud-value" id="hudTime">3:00</div><div class="hud-sub">left in this stage</div></div>
-    <div class="hud-block" id="alarmWrap"><div class="hud-label">Alarm <span id="wanted">☆☆☆☆☆</span></div><div id="alarmBar"><div id="alarmFill"></div></div><div class="hud-sub" id="hudAlarm">CALM — stay out of the cones</div></div>
-    <div class="hud-block"><div class="hud-label">Score</div><div class="hud-value" id="hudScore">0</div><div class="hud-sub" id="hudBest">BEST 0 · LIVES ♥♥♥</div></div>
+<header>
+  <div>
+    <h1>VELVET VAULT</h1>
+    <div class="subtitle">The Midnight Heist — the Aldermere Museum, one night, three rooms</div>
   </div>
-
-  <div id="mid">
-    <div id="stageWrap">
-      <canvas id="game" width="860" height="640" aria-label="Velvet Vault: sneak through the museum, dodge guards and cameras, crack the vault and escape with the loot"></canvas>
-      <div id="spotted">SPOTTED!<small>BREAK LINE OF SIGHT — THE VENT IS YOUR ESCAPE</small></div>
-
-      <div class="overlay show" id="planOverlay">
-        <div class="card">
-          <h1>VELVET VAULT</h1>
-          <div class="counts">3 STAGES · 5 THREATS · 3 TOOLS · 3 ROUTES · 1 MIDNIGHT</div>
-          <p style="text-align:center">The Aldermere Museum. One crew, one night, one vault.
-          Plan the crew, slip past the guards, crack the vault, grab the loot and walk out
-          before the alarm brings the whole city down on you.</p>
-          <h3>Heist Plan — the three stages</h3>
-          <div id="planStages"></div>
-          <h3>Threats — know them before you move</h3>
-          <div id="planThreats"></div>
-          <h3>Tools — pick your loadout (costs are real)</h3>
-          <div class="tool-row" id="planTools"></div>
-          <h3>Route into the room</h3>
-          <div class="route-pick" id="planRoutes"></div>
-          <button class="bigbtn" id="beginBtn">BEGIN THE HEIST</button>
-          <p style="text-align:center; font-size:12px; color:#8f86b8; margin-top:8px">
-          Move WASD / arrows · Shift run · Click to walk · 1/2/3 tools · E crack the vault · P pause · M mute</p>
-        </div>
+  <div class="hud" id="hud">
+    <span>MODE <b id="hud-mode">HEIST</b></span>
+    <span>SCORE <b id="hud-score">0</b></span>
+    <span>LOOT <b id="hud-loot">$0</b></span>
+    <span>LIVES <b id="hud-lives">3</b></span>
+    <span>TIME <b id="hud-time">120</b>s</span>
+    <span>COMBO <b id="hud-combo">×1</b></span>
+    <span>NOISE <span class="meter noise"><span id="hud-noise"></span></span></span>
+    <span>ALARM <span class="meter"><span id="hud-alarm"></span></span> <span id="alarm-label">CALM</span></span>
+    <span>BEST <b id="hud-best">0</b></span>
+  </div>
+</header>
+<main>
+  <div id="plan" class="panel">
+    <h2>HEIST PLAN — THE ALDERMERE MUSEUM</h2>
+    <p>Three rooms, one night. The Lobby holds the small gold. The Gallery holds the art. The Vault holds the Crown Jewels — and the Curator. Take the loot, crack the vault, reach the green exit. Get spotted and the alarm climbs; get caught and a life is gone.</p>
+    <p><b>Choose your mode:</b></p>
+    <p>
+      <button id="mode-heist" class="selected">HEIST — 3 lives, standard alarm, ×1 score</button>
+      <button id="mode-master" class="secondary">MASTER — 2 lives, faster alarm, ×2 score</button>
+    </p>
+    <p><b>Choose your route into Room 1:</b></p>
+    <p>
+      <button id="route-main" class="selected">MAIN FLOOR</button>
+      <button id="route-vent" class="secondary">VENT SHAFT</button>
+      <button id="route-balcony" class="secondary">BALCONY</button>
+    </p>
+    <p><button id="start-btn">START THE HEIST</button></p>
+    <div class="grid">
+      <div class="panel">
+        <h2>THREATS — 6 WAYS TO GET CAUGHT</h2>
+        <ul id="threat-list"></ul>
       </div>
-
-      <div class="overlay" id="winOverlay">
-        <div class="card">
-          <h1>THE VAULT IS YOURS</h1>
-          <p style="text-align:center">All three stages cleaned out. The crew is already
-          halfway to the coast — and the Aldermere never saw your face.</p>
-          <div id="newBest">★ NEW BEST ★</div>
-          <div class="stat-grid">
-            <div class="stat-box"><div class="lab">Loot</div><div class="val" id="winLoot">$0</div></div>
-            <div class="stat-box"><div class="lab">Time</div><div class="val" id="winTime">0:00</div></div>
-            <div class="stat-box"><div class="lab">Score</div><div class="val" id="winScore">0</div></div>
-            <div class="stat-box"><div class="lab">Best</div><div class="val" id="winBest">0</div></div>
-          </div>
-          <button class="bigbtn" id="againBtn">RUN IT AGAIN</button>
-          <button class="bigbtn" id="menuBtn" style="background:#3a2f5e;color:#ffe9a3">BACK TO THE PLAN</button>
-        </div>
-      </div>
-
-      <div class="overlay" id="overOverlay">
-        <div class="card">
-          <h1>THE HEIST IS BLOWN</h1>
-          <p style="text-align:center" id="overText">The alarm maxed out and the museum locked
-          down. The crew got out — but the vault stayed shut.</p>
-          <div class="stat-grid">
-            <div class="stat-box"><div class="lab">Loot kept</div><div class="val" id="overLoot">$0</div></div>
-            <div class="stat-box"><div class="lab">Score</div><div class="val" id="overScore">0</div></div>
-          </div>
-          <button class="bigbtn" id="retryBtn">TRY THE PLAN AGAIN</button>
-        </div>
+      <div class="panel">
+        <h2>TOOLS — AT A COST</h2>
+        <ul id="tool-list"></ul>
       </div>
     </div>
-
-    <div id="rail">
-      <div class="panel"><h2>Heist Plan</h2><div id="railPlan"></div></div>
-      <div class="panel"><h2>Threats</h2><div id="railThreats"></div></div>
-      <div class="panel"><h2>Tools — at a cost</h2><div class="tool-row" id="railTools"></div>
-        <div style="margin-top:5px;color:#8f86b8;font-size:11px">Keys 1 / 2 / 3 — or click a tool. Costs come out of your loot or your time.</div></div>
-      <div class="panel"><h2>Crew — on the radio</h2><div id="railCrew"></div></div>
-      <div class="panel"><h2>How to win</h2>
-        <div style="color:#e8dcb8;line-height:1.5">WIN: crack the vault and reach the exit with the loot.<br>
-        LOSE: the alarm maxes out, or your lives run out.<br>
-        Grab every glowing piece to hit the stage loot target — the vault only opens once you have.</div></div>
+    <div class="grid" style="margin-top:10px">
+      <div class="panel">
+        <h2>CREW</h2>
+        <ul id="crew-list"></ul>
+      </div>
+      <div class="panel">
+        <h2>HOW TO PLAY</h2>
+        <p><kbd>WASD</kbd>/<kbd>←↑↓→</kbd> move · <kbd>Shift</kbd> run (loud — watch NOISE) · <kbd>E</kbd> crack the vault · <kbd>1</kbd> smoke · <kbd>2</kbd> disguise · <kbd>3</kbd> jammer · click to walk · <kbd>P</kbd> pause · <kbd>M</kbd> mute</p>
+        <p class="tag">Loot target per room: Lobby $1,200 · Gallery $2,400 · Vault $3,600. Grab loot unseen to grow your COMBO — every grab after the first pays a chain bonus. Crack the vault dial for 3s and the Curator gets angry: his health falls, his sweep widens, his speed rises. Between rooms, SPEND THE LOOT on one upgrade.</p>
+      </div>
     </div>
   </div>
 
-  <div id="bottom">
-    <div id="radio">RADIO: “Wren here. Doors are yours for ninety seconds. Make them count.”</div>
-    <div id="winlose">WIN: crack the vault + reach the exit · LOSE: alarm 100% or no lives</div>
-    <div id="controls">WASD move · Shift run · Click walk · 1/2/3 tools · E crack · P pause</div>
+  <div id="play" class="hidden">
+    <canvas id="game" width="860" height="640"></canvas>
+    <div class="panel">
+      <p class="radio" id="radio">WREN: “Doors are yours. Make every second count.”</p>
+      <p id="hint">Stay out of the gold cones. Grab the loot, crack the vault, reach the green exit.</p>
+    </div>
   </div>
-</div>
-<p id="status" role="status" aria-live="polite"></p>
-<script type="module" src="./src/main.js"></script>
+
+  <div id="upgrade" class="panel hidden">
+    <h2>SPEND THE LOOT — PICK ONE FOR THE NEXT ROOM</h2>
+    <p id="upgrade-sub">The crew lays out what your haul buys.</p>
+    <div id="upgrade-cards"></div>
+  </div>
+
+  <div id="win" class="panel hidden">
+    <h2 class="big">CLEAN GETAWAY</h2>
+    <p class="win-line" id="win-line">You slipped out of the Aldermere with the Crown Jewels and the Curator never saw your face.</p>
+    <p class="score">SCORE <span id="win-score">0</span></p>
+    <p id="win-best"></p>
+    <table class="breakdown" id="win-breakdown"></table>
+    <p id="win-mode"></p>
+    <p><button id="again-btn">RUN IT AGAIN</button></p>
+  </div>
+
+  <div id="over" class="panel hidden">
+    <h2 class="big">CAUGHT</h2>
+    <p id="over-reason">The museum changed shifts and the night was over.</p>
+    <p>Score: <b id="over-score">0</b></p>
+    <p><button id="retry-btn">TRY AGAIN</button></p>
+  </div>
+</main>
+<footer>Velvet Vault — built by an AI agent for make.fun's Best Heist Game bounty. Best score is saved on this machine.</footer>
+<script type="module" src="./main.js"></script>
 </body>
 </html>

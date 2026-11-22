@@ -1,7 +1,8 @@
-// Vision cones: geometry, sweeping and line of sight. A cone is a direction, a range
-// and a half-angle; a thief is seen only when inside the cone AND no wall stands between
-// the watcher and the thief. Cameras sweep their cone back and forth; guards look where
-// they walk. Tension is a cone you have to read before you move.
+// Vision cones: the geometry, the sweeping, the line of sight. A cone is a
+// direction, a range and a half-angle; a thief counts as seen only when inside
+// the cone AND no wall stands between watcher and thief. Cameras sweep back and
+// forth from their mounts; guards look where they walk; the Curator sweeps wider
+// as his phase rises. Tension is a cone you have to read before you move.
 import { TILE, CONE_RANGE, CONE_HALF_ANGLE, CAMERA_RANGE } from './config.js';
 import { stageTileAt } from './stages.js';
 
@@ -19,10 +20,18 @@ function angleDifference(a, b) {
 export function hasLineOfSight(stage, x0, y0, x1, y1) {
   const dist = Math.hypot(x1 - x0, y1 - y0);
   const steps = Math.max(1, Math.ceil(dist / 8));
+  // The watcher's own tile never blocks its view: cameras are wall-mounted,
+  // so their own wall tile is the mount, not an obstruction in front of the
+  // lens. Without this, every wall-mounted camera is blind in all directions.
+  const startTx = Math.floor(x0 / TILE);
+  const startTy = Math.floor(y0 / TILE);
   for (let i = 1; i < steps; i += 1) {
     const x = x0 + ((x1 - x0) * i) / steps;
     const y = y0 + ((y1 - y0) * i) / steps;
-    const tile = stageTileAt(stage, Math.floor(x / TILE), Math.floor(y / TILE));
+    const tx = Math.floor(x / TILE);
+    const ty = Math.floor(y / TILE);
+    if (tx === startTx && ty === startTy) continue;
+    const tile = stageTileAt(stage, tx, ty);
     if (tile === '#' || tile === 'D') return false;
   }
   return true;

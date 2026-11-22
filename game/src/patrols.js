@@ -1,8 +1,11 @@
-// Guard patrols: the five threat types and how each one moves.
-// PATROLLER walks a fixed route of waypoints. HOUND chases on sight and gives up when it
-// loses you. WRAITH walks through walls, slow and patient. DRONE turns right at every
-// wall and sweeps the halls. CAMERA is wall-mounted and sweeps its cone back and forth.
-// Each type has a distinct look and a one-line behavior in the THREATS legend.
+// The six threats and how each one moves. PATROLLER walks a fixed route of
+// waypoints. HOUND chases on sight and gives up when it loses you — and it slides
+// along walls while it chases, never through them: the catch has to be fair.
+// WRAITH walks through walls, slow and patient. DRONE turns right at every wall
+// and sweeps the halls. CAMERA is wall-mounted and sweeps its cone back and
+// forth. THE CURATOR is the boss: he walks a loop around the vault and his
+// temper rises with the crack — his movement lives in boss.js, his legend line
+// lives here.
 import { TILE, GUARD_SPEED, HOUND_SPEED, WRAITH_SPEED, DRONE_SPEED } from './config.js';
 import { stageTileAt, stageTileCenter } from './stages.js';
 
@@ -12,6 +15,7 @@ export const THREAT_TYPES = [
   { type: 'WRAITH', color: '#b78cff', behavior: 'walks through walls — slow, patient, unstoppable' },
   { type: 'DRONE', color: '#4ecdc4', behavior: 'turns right at every wall — its path is a puzzle' },
   { type: 'CAMERA', color: '#ff8c42', behavior: 'sweeps a cone from its mount — jam it or time it' },
+  { type: 'CURATOR', color: '#ffd75e', behavior: 'the boss — guards the vault, angrier as the dial turns' },
 ];
 
 export function createGuard(def, stage) {
@@ -58,6 +62,43 @@ function moveToward(entity, tx, ty, speed, dt) {
   return dist - step < 2;
 }
 
+// The hound's wall test: the same circle-vs-wall check the thief uses, and a
+// guard may not enter a vent or a balcony either. A chasing hound that phases
+// through walls is not a fair catch.
+function guardBlocked(stage, x, y) {
+  const radius = 12;
+  const minTx = Math.floor((x - radius) / TILE);
+  const maxTx = Math.floor((x + radius) / TILE);
+  const minTy = Math.floor((y - radius) / TILE);
+  const maxTy = Math.floor((y + radius) / TILE);
+  for (let ty = minTy; ty <= maxTy; ty += 1) {
+    for (let tx = minTx; tx <= maxTx; tx += 1) {
+      const tile = stageTileAt(stage, tx, ty);
+      if (tile !== '#' && tile !== 'D' && tile !== 'v' && tile !== 'b') continue;
+      const cx = Math.max(tx * TILE, Math.min(x, (tx + 1) * TILE));
+      const cy = Math.max(ty * TILE, Math.min(y, (ty + 1) * TILE));
+      if ((x - cx) ** 2 + (y - cy) ** 2 < radius * radius) return true;
+    }
+  }
+  return false;
+}
+
+// Slide toward a point: try x, then y, each blocked by walls — the hound
+// rounds corners instead of walking through them.
+function slideToward(guard, stage, tx, ty, speed, dt) {
+  const dx = tx - guard.x;
+  const dy = ty - guard.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 2) return true;
+  const step = Math.min(dist, speed * dt);
+  const nx = guard.x + (dx / dist) * step;
+  const ny = guard.y + (dy / dist) * step;
+  if (!guardBlocked(stage, nx, guard.y)) guard.x = nx;
+  if (!guardBlocked(stage, guard.x, ny)) guard.y = ny;
+  guard.angle = Math.atan2(dy, dx);
+  return Math.hypot(tx - guard.x, ty - guard.y) < 2;
+}
+
 function tileBlocked(stage, x, y) {
   const tx = Math.floor(x / TILE);
   const ty = Math.floor(y / TILE);
@@ -72,19 +113,17 @@ function updatePatroller(guard, dt) {
   }
 }
 
-function updateHound(guard, seesThief, thief, dt) {
+function updateHound(guard, stage, seesThief, thief, dt) {
   if (seesThief) {
     guard.state = 'chase';
     guard.chaseTimer = 2.5;
-    moveToward(guard, thief.x, thief.y, guard.speed, dt);
+    slideToward(guard, stage, thief.x, thief.y, guard.speed, dt);
   } else if (guard.state === 'chase') {
     guard.chaseTimer -= dt;
     if (guard.chaseTimer <= 0) guard.state = 'return';
-    else moveToward(guard, thief.x, thief.y, guard.speed * 0.8, dt);
-  } else {
-    if (moveToward(guard, guard.homeX, guard.homeY, guard.speed * 0.6, dt)) {
-      guard.state = 'patrol';
-    }
+    else slideToward(guard, stage, thief.x, thief.y, guard.speed * 0.8, dt);
+  } else if (slideToward(guard, stage, guard.homeX, guard.homeY, guard.speed * 0.6, dt)) {
+    guard.state = 'patrol';
   }
 }
 
@@ -114,7 +153,7 @@ function updateDrone(guard, stage, dt) {
 
 export function updatePatrol(guard, stage, seesThief, thief, dt) {
   if (guard.type === 'PATROLLER') updatePatroller(guard, dt);
-  else if (guard.type === 'HOUND') updateHound(guard, seesThief, thief, dt);
+  else if (guard.type === 'HOUND') updateHound(guard, stage, seesThief, thief, dt);
   else if (guard.type === 'WRAITH') updateWraith(guard, dt);
   else if (guard.type === 'DRONE') updateDrone(guard, stage, dt);
 }

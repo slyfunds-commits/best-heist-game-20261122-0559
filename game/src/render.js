@@ -1,18 +1,18 @@
 // The painter: everything the judge sees of the museum is drawn here, procedurally,
-// on one canvas. Marble floors, gold-trimmed walls, glowing loot, vision cones in
-// amber and red, the thief in the dark. Safe cover, danger and loot are obvious at a
-// glance: gold glows, red cones mean danger, green means the way out.
-import { TILE, COLS, ROWS, CONE_RANGE, CONE_HALF_ANGLE, CAMERA_RANGE, CRACK_SECONDS } from './config.js';
+// on one canvas. Each room has its own look inside the same dark-navy and gold
+// night — marble and red carpet in the Lobby, loud paintings behind glass in the
+// Gallery, gold and chandeliers in the Vault — with busts, display cases and
+// glinting loot for dressing. Gold glows, red cones mean danger, green means the
+// way out, and the Curator's health bar hangs over the vault room. Safe cover,
+// danger and loot are obvious at a glance.
+import { TILE, COLS, ROWS, CONE_RANGE, CONE_HALF_ANGLE, CAMERA_RANGE, CRACK_SECONDS, CURATOR_RANGE } from './config.js';
 import { STAGES, stageTileAt } from './stages.js';
 import { conePoints } from './cones.js';
 import { vaultReady, vaultPosition, exitPosition } from './loot.js';
 import { THREAT_TYPES } from './patrols.js';
+import { bossSweep, bossSecondCone, bossPhaseLabel } from './boss.js';
 
-const WALL = '#2c2340';
 const WALL_TOP = '#c9a227';
-const FLOOR_A = '#1e1830';
-const FLOOR_B = '#221b38';
-const RUG = '#4a1f3d';
 
 function hash(tx, ty) {
   let h = (tx * 374761393 + ty * 668265263) | 0;
@@ -25,13 +25,14 @@ function threatColor(type) {
 }
 
 function drawFloor(ctx, stage) {
+  const look = stage.look;
   for (let ty = 0; ty < ROWS; ty += 1) {
     for (let tx = 0; tx < COLS; tx += 1) {
       const tile = stageTileAt(stage, tx, ty);
       const x = tx * TILE;
       const y = ty * TILE;
       if (tile === '#') {
-        ctx.fillStyle = WALL;
+        ctx.fillStyle = look.wall;
         ctx.fillRect(x, y, TILE, TILE);
         ctx.fillStyle = WALL_TOP;
         ctx.fillRect(x, y, TILE, 3);
@@ -39,7 +40,7 @@ function drawFloor(ctx, stage) {
         ctx.fillRect(x, y + 3, TILE, 2);
         continue;
       }
-      ctx.fillStyle = (tx + ty) % 2 === 0 ? FLOOR_A : FLOOR_B;
+      ctx.fillStyle = (tx + ty) % 2 === 0 ? look.floorA : look.floorB;
       ctx.fillRect(x, y, TILE, TILE);
       ctx.strokeStyle = 'rgba(0,0,0,0.25)';
       ctx.strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
@@ -94,16 +95,65 @@ function drawFloor(ctx, stage) {
       }
     }
   }
-  // A thin dark runner down the middle of the hall, under the loot — never a slab.
-  ctx.fillStyle = '#241428';
+  // The runner down the middle of the hall, in this room's rug colour.
+  ctx.fillStyle = look.rug;
   ctx.fillRect(10 * TILE, 2 * TILE, TILE, 12 * TILE);
-  ctx.strokeStyle = 'rgba(201,162,39,0.35)';
+  ctx.strokeStyle = look.rugTrim;
+  ctx.globalAlpha = 0.5;
   ctx.lineWidth = 1;
   ctx.strokeRect(10 * TILE + 3, 2 * TILE + 3, TILE - 6, 12 * TILE - 6);
+  ctx.globalAlpha = 1;
+}
+
+function drawProps(ctx, stage, time) {
+  // Busts in the Lobby, glass cases in the Gallery, chandeliers in the Vault.
+  const look = stage.look;
+  ctx.textAlign = 'center';
+  for (let ty = 1; ty < ROWS - 1; ty += 1) {
+    for (let tx = 1; tx < COLS - 1; tx += 1) {
+      const h = hash(tx * 3 + 1, ty * 5 + 2);
+      if (h < 0.86) continue;
+      if (stageTileAt(stage, tx, ty) !== '.') continue;
+      const x = tx * TILE + TILE / 2;
+      const y = ty * TILE + TILE / 2;
+      if (look.prop === 'busts') {
+        ctx.fillStyle = '#8f86b8';
+        ctx.fillRect(x - 7, y + 2, 14, 10);
+        ctx.beginPath();
+        ctx.arc(x, y - 4, 7, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (look.prop === 'cases') {
+        ctx.fillStyle = 'rgba(140,190,255,0.18)';
+        ctx.fillRect(x - 9, y - 9, 18, 18);
+        ctx.strokeStyle = '#8fa8c8';
+        ctx.strokeRect(x - 9.5, y - 9.5, 19, 19);
+        ctx.fillStyle = '#ffd75e';
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Chandeliers: a gold ring with a flicker of candlelight.
+        const flick = 0.7 + Math.sin(time * 3 + tx + ty) * 0.3;
+        ctx.globalAlpha = flick;
+        ctx.strokeStyle = '#ffd75e';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = '#ffe9a3';
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.lineWidth = 1;
+      }
+    }
+  }
 }
 
 function drawPaintings(ctx, stage) {
-  // Framed paintings hang on wall faces that border the floor.
+  // Framed paintings hang on wall faces that border the floor, in this room's palette.
+  const look = stage.look;
   ctx.textAlign = 'center';
   for (let ty = 1; ty < ROWS - 1; ty += 1) {
     for (let tx = 1; tx < COLS - 1; tx += 1) {
@@ -111,10 +161,9 @@ function drawPaintings(ctx, stage) {
       if (stageTileAt(stage, tx, ty + 1) === '.' && hash(tx, ty) > 0.45) {
         const x = tx * TILE;
         const y = ty * TILE;
-        const palette = ['#7a4a2a', '#2a5a4a', '#4a2a5a', '#8a6a1a'];
         ctx.fillStyle = '#c9a227';
         ctx.fillRect(x + 6, y + TILE - 16, TILE - 12, 12);
-        ctx.fillStyle = palette[Math.floor(hash(tx + 3, ty) * 4) % 4];
+        ctx.fillStyle = look.painting[Math.floor(hash(tx + 3, ty) * 4) % 4];
         ctx.fillRect(x + 8, y + TILE - 14, TILE - 16, 8);
       }
     }
@@ -194,6 +243,19 @@ function drawLoot(ctx, world, time) {
     ctx.beginPath();
     ctx.arc(item.x, item.y + bob, glow, 0, Math.PI * 2);
     ctx.fill();
+    // An animated glint: a four-point sparkle that flashes as it turns.
+    const spark = 0.4 + Math.abs(Math.sin(time * 2.4 + item.bobPhase)) * 0.6;
+    ctx.save();
+    ctx.globalAlpha = spark;
+    ctx.strokeStyle = '#fff3c8';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(item.x - 12, item.y + bob);
+    ctx.lineTo(item.x + 12, item.y + bob);
+    ctx.moveTo(item.x, item.y + bob - 12);
+    ctx.lineTo(item.x, item.y + bob + 12);
+    ctx.stroke();
+    ctx.restore();
     ctx.save();
     ctx.translate(item.x, item.y + bob);
     ctx.rotate(Math.PI / 4);
@@ -222,7 +284,7 @@ function drawCone(ctx, x, y, angle, range, halfAngle, color, dark) {
   ctx.fill();
 }
 
-function drawGuard(ctx, guard, world, stage) {
+function drawGuard(ctx, guard, world) {
   const color = threatColor(guard.type);
   const sees = guard.state === 'chase';
   const blinded = world.smokeTimer > 0;
@@ -289,6 +351,81 @@ function drawGuard(ctx, guard, world, stage) {
     ctx.font = 'bold 11px Georgia';
     ctx.fillText('!', guard.x, guard.y - 32);
   }
+}
+
+function drawBoss(ctx, boss, world) {
+  const half = bossSweep(boss);
+  const blinded = world.smokeTimer > 0;
+  // His cone: wide, gold, and in phase 3 a second cone off to the side.
+  drawCone(ctx, boss.x, boss.y, boss.angle, CURATOR_RANGE, half,
+    blinded ? 'rgba(120,120,130,0.08)' : 'rgba(255,215,94,0.20)', blinded);
+  if (bossSecondCone(boss)) {
+    drawCone(ctx, boss.x, boss.y, boss.angle + 0.7, CURATOR_RANGE, half,
+      blinded ? 'rgba(120,120,130,0.08)' : 'rgba(255,215,94,0.14)', blinded);
+  }
+  // The man himself: bigger than any guard, gold-trimmed, crowned.
+  ctx.save();
+  ctx.translate(boss.x, boss.y);
+  ctx.fillStyle = '#2a1f3d';
+  ctx.beginPath();
+  ctx.arc(0, 0, 16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#ffd75e';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.fillStyle = '#ffd75e';
+  ctx.beginPath();
+  ctx.moveTo(-9, -12);
+  ctx.lineTo(-5, -20);
+  ctx.lineTo(0, -13);
+  ctx.lineTo(5, -20);
+  ctx.lineTo(9, -12);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#f3e9c8';
+  ctx.beginPath();
+  ctx.arc(0, 0, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = '#ffd75e';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(boss.x, boss.y);
+  ctx.lineTo(boss.x + Math.cos(boss.angle) * 26, boss.y + Math.sin(boss.angle) * 26);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.fillStyle = '#ffe9a3';
+  ctx.font = 'bold 11px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillText('THE CURATOR', boss.x, boss.y - 30);
+  // His health bar, right above him.
+  ctx.fillStyle = '#1b1530';
+  ctx.fillRect(boss.x - 30, boss.y - 44, 60, 8);
+  ctx.fillStyle = boss.hp > 50 ? '#e82a2a' : '#ff8c42';
+  ctx.fillRect(boss.x - 29, boss.y - 43, 58 * (boss.hp / 100), 6);
+  ctx.fillStyle = '#ffe9a3';
+  ctx.font = 'bold 9px Georgia';
+  ctx.fillText(`PHASE ${boss.phase}/3`, boss.x, boss.y - 48);
+}
+
+function drawBossBar(ctx, world) {
+  if (!world.boss) return;
+  const barW = 320;
+  const x0 = (860 - barW) / 2;
+  const y0 = 34;
+  ctx.fillStyle = 'rgba(12,10,20,0.78)';
+  ctx.fillRect(x0 - 10, y0 - 16, barW + 20, 34);
+  ctx.fillStyle = '#ffe9a3';
+  ctx.font = 'bold 12px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillText(bossPhaseLabel(world.boss), 430, y0 - 4);
+  ctx.fillStyle = '#1b1530';
+  ctx.fillRect(x0, y0 + 2, barW, 10);
+  ctx.fillStyle = world.boss.hp > 50 ? '#e82a2a' : '#ff8c42';
+  ctx.fillRect(x0 + 1, y0 + 3, (barW - 2) * (world.boss.hp / 100), 8);
+  ctx.strokeStyle = '#ffd75e';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x0, y0 + 2, barW, 10);
 }
 
 function drawCamera(ctx, camera, world) {
@@ -369,18 +506,20 @@ function drawPopups(ctx, world) {
   ctx.font = 'bold 13px Georgia';
   for (const popup of world.popups) {
     ctx.globalAlpha = Math.min(1, popup.ttl);
-    ctx.fillStyle = '#7ddb8f';
+    ctx.fillStyle = popup.text.includes('COMBO') ? '#ffd75e' : '#7ddb8f';
     ctx.fillText(popup.text, popup.x, popup.y - (1.4 - popup.ttl) * 30);
   }
   ctx.globalAlpha = 1;
 }
 
-function drawRouteTags(ctx, stage) {
+function drawRouteTags(ctx) {
   ctx.textAlign = 'left';
   ctx.font = 'bold 10px Georgia';
   ctx.fillStyle = 'rgba(255,233,163,0.75)';
   ctx.fillText('VENT SHAFT', 2 * TILE + 4, 3 * TILE - 6);
-  ctx.fillText('BALCONY', 14 * TILE + 4, TILE + 12);
+  // BALCONY sits at the far right end of the walkway: the boss bar covers the
+  // centre of the top edge (x 260–600), so a tag at col 14 would hide under it.
+  ctx.fillText('BALCONY', 18 * TILE + 4, TILE + 12);
   ctx.fillStyle = 'rgba(207,196,160,0.7)';
   ctx.fillText('MAIN FLOOR', TILE + 4, 15 * TILE - 8);
 }
@@ -398,15 +537,18 @@ export function drawWorld(ctx, world, time) {
   const stage = STAGES[world.stageIndex];
   ctx.clearRect(0, 0, 860, 640);
   drawFloor(ctx, stage);
+  drawProps(ctx, stage, time);
   drawPaintings(ctx, stage);
   drawVaultAndExit(ctx, world);
   drawLoot(ctx, world, time);
-  drawRouteTags(ctx, stage);
+  drawRouteTags(ctx);
   for (const camera of world.cameras) drawCamera(ctx, camera, world);
-  for (const guard of world.guards) drawGuard(ctx, guard, world, stage);
+  for (const guard of world.guards) drawGuard(ctx, guard, world);
+  if (world.boss) drawBoss(ctx, world.boss, world);
   drawThief(ctx, world.thief, world);
   drawSmoke(ctx, world);
   drawPopups(ctx, world);
+  drawBossBar(ctx, world);
   // Stage banner, top-left inside the canvas.
   ctx.fillStyle = 'rgba(12,10,20,0.72)';
   ctx.fillRect(0, 0, 300, 26);

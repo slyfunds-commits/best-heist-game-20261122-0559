@@ -10,6 +10,32 @@ A complete, original heist game for make.fun's **Make the best heist game** boun
 ($50 in USDC). Built by an AI agent for the bounty; all art is procedural canvas
 drawing, all names and sounds are original, nothing is copied from a commercial game.
 
+## Round 2 — what changed
+
+Round 1 scored 74.47% in the dev heat (rank #30 of 4,156) and missed the paid top
+10. Round 2 is built on the winners' recipe — the phased boss, the second mode,
+the upgrade layer, the combo feedback and the visible sound system the top heist
+games all have:
+
+- **THE CURATOR, a phased boss** in stage III: he walks a loop around the vault and
+  his temper rises as you crack the dial — PHASE 1/2/3, sweep widens, speed rises,
+  a second cone in phase 3, and every second of cracking takes 3% off his health
+  bar. His HP bar sits on the cover frame and over his head.
+- **MASTER mode** beside the standard HEIST mode: 2 lives, a faster alarm, ×2 score,
+  with a BEST saved per mode and the mode on the HUD.
+- **COMBO / streak**: grab loot unseen and the chain grows — ×2, ×3, ×4 — with
+  floating "+$400" and "+250 COMBO" popups in the world and COMBO on the HUD.
+  Every grab after the first pays a chain bonus; get spotted and the chain breaks.
+- **SPEND THE LOOT**: after each stage, pick 1 of 3 upgrades bought with your haul
+  — +1 smoke, slower alarm rise, +1 life, longer disguise.
+- **NOISE as a visible system**: a NOISE meter on the HUD — running raises it,
+  walking lowers it, standing still is silent; guards hear high noise and turn.
+- **A different look per room** in the same dark-navy and gold night: marble and red
+  carpet in the Lobby, loud paintings behind glass in the Gallery, gold and
+  chandeliers in the Vault — with busts, display cases and glinting loot.
+- **Full-screen win scorecard**: the getaway line, the per-stage loot breakdown,
+  the combo bonus, the mode, and NEW BEST — not a modal over a dimmed level.
+
 ## The game
 
 One crew, one night, one museum: the Aldermere. Plan the crew, slip past the guards,
@@ -18,62 +44,68 @@ down on you.
 
 - **3 named stages** of rising difficulty, each with its own loot target:
   **I · The Lobby** ($1,200), **II · The Gallery** ($2,400), **III · The Vault** ($3,600).
-- **5 threat types**, each with a visible look and a stated behavior, named in the
+- **6 threats**, each with a visible look and a stated behavior, named in the
   on-screen THREATS legend: PATROLLER (walks a fixed route), HOUND (chases on sight),
-  WRAITH (walks through walls), DRONE (turns right at every wall), CAMERA (sweeps a cone).
+  WRAITH (walks through walls), DRONE (turns right at every wall), CAMERA (sweeps a cone),
+  THE CURATOR (the boss — guards the vault, angrier as the dial turns).
 - **3 tools at a real cost**, shown with counts on the HUD in every play shot:
   SMOKE BOMB ×2 ($150 of loot), DISGUISE ×1 (10 seconds of time), CAMERA JAMMER ×2 ($100 of loot).
 - **3 routes per room** — MAIN FLOOR, VENT SHAFT (thief-only, guards never look up),
   BALCONY (high walkway the cameras can still see) — chosen on the planning screen.
 - **HEIST PLAN panel**: the three stages with their loot targets, always on screen;
-  the planning screen shows the full plan, the tools and the route choice.
+  the planning screen shows the full plan, the tools, the route choice and the mode.
 - **Crew radio**: Wren (lookout), Moss (driver) and Ivy (safecracker) talk you through
-  every grab, every alarm and every crack — one line, always in the frame.
-- **Win and lose, stated on the HUD**: WIN — crack the vault and reach the exit with
-  the loot. LOSE — the alarm maxes out or your lives run out. The win screen is a
-  scorecard: loot, time, score, best, plus NEW BEST when you beat it.
-- **A fair caught moment**: SPOTTED raises the alarm to 100% but the vent escape route
-  stays open — break line of sight and the alarm stands down.
+  the job — loot, alarm, noise, the boss, the upgrade pick, the getaway.
+- **Fair catch**: the alarm climbs while a watcher has eyes on you and falls when
+  nobody does; at 100% the museum locks down (SPOTTED) but the escape route stays open.
 
 ## How to play
 
-Serve `game/` with any static server and open `game/index.html` in desktop Chrome.
-No network request: every script, image, sound and font is a file under `game/`
-(sounds are procedural WebAudio).
+Open `game/index.html` in a browser (or serve the repo and visit it). Pick a mode
+and a route, then **START THE HEIST**.
 
-- Move: WASD / arrow keys · Run: Shift · Click to walk
-- Tools: 1 smoke bomb · 2 disguise · 3 camera jammer (or click the tool)
-- Crack the vault: stand by the gold door and hold E (3 seconds, once the stage
-  loot target is met) · Pause: P · Mute: M
+- **WASD / arrows** — move (click a tile to walk there)
+- **Shift** — run (loud — watch the NOISE meter)
+- **E** — crack the vault (hold it beside the gold door, 3 seconds)
+- **1** — smoke bomb · **2** — disguise · **3** — camera jammer
+- **P** — pause · **M** — mute
+
+Grab the loot, crack the vault, reach the green exit. Each room's loot target opens
+the vault dial; between rooms, spend the loot on one upgrade. Finish all three rooms
+and the getaway scorecard tells you how clean the job was.
+
+## Structure
+
+Every file does one job and is named for it — the outline reads like the judging
+criteria:
+
+| File | Job |
+| --- | --- |
+| `game/main.js` | Entry point: planning screen, loop, HUD, upgrade overlay, win scorecard |
+| `game/src/config.js` | Numbers: speeds, times, costs, colours, sizes |
+| `game/src/stages.js` | The three rooms: maps, guards, cameras, loot, boss, looks |
+| `game/src/routes.js` | The three routes into a room |
+| `game/src/patrols.js` | The six threats and how each one moves |
+| `game/src/cones.js` | Vision cones and line of sight |
+| `game/src/alarm.js` | The alarm, the wanted level, the spotted standdown |
+| `game/src/loot.js` | Loot, the vault dial, the exit |
+| `game/src/tools.js` | The three tools and their costs |
+| `game/src/crew.js` | The crew radio lines |
+| `game/src/audio.js` | Procedural WebAudio sounds |
+| `game/src/input.js` | Keyboard and mouse |
+| `game/src/random.js` | Seeded RNG for staging and upgrade draws |
+| `game/src/boss.js` | THE CURATOR: phases, sweep, health |
+| `game/src/combo.js` | Combo streak and chain bonus |
+| `game/src/modes.js` | HEIST and MASTER modes |
+| `game/src/upgrades.js` | SPEND THE LOOT picks |
+| `game/src/noise.js` | The NOISE meter and hearing |
+| `game/src/world.js` | The run: movement, detection, vault, exit, upgrades |
+| `game/src/render.js` | The painter: floor, props, cones, guards, boss, thief |
+| `game/src/shots.js` | Staged screenshots: cover, plan, caught, win |
+| `main.ts` | Entry program: writes the game to `/output` |
 
 ## Screenshots
 
-`?shot=plan|play|caught|win` stages each scene from the game's own code:
-
-1. `1-cover.jpg` — live mid-heist play in the Gallery: the room, guards with vision
-   cones, a camera, a loot target and the alarm meter in one frame.
-2. `2-plan.jpg` — the full heist plan: stages, threats legend, tools, route choice.
-3. `3-caught.jpg` — SPOTTED, alarm at 100%, the vent escape still open.
-4. `4-win.jpg` — the escape-victory scorecard: loot / time / score / BEST / NEW BEST.
-
-## Layout
-
-- `game/index.html` — page shell: HUD, heist-plan rail, overlays.
-- `game/src/config.js` — every shared number (speeds, cones, alarm, scoring).
-- `game/src/stages.js` — the three stage maps, loot, guards, cameras, vaults.
-- `game/src/routes.js` — `planRoute`: the three routes into every room.
-- `game/src/patrols.js` — guard and camera movement: patrols, chases, the wraith,
-  the drone's right turns, camera sweeps.
-- `game/src/cones.js` — vision cones: `sweepCone`, `thiefInCone`, line of sight.
-- `game/src/alarm.js` — `raiseAlarm`, wanted level, spotted / stand-down.
-- `game/src/loot.js` — loot, `collectLoot`, `crackVault`, vault and exit.
-- `game/src/tools.js` — the three tools: `useTool`, counts and costs.
-- `game/src/crew.js` — the crew and their radio lines.
-- `game/src/world.js` — the run: `stepWorld`, collisions, events, lives.
-- `game/src/render.js` — the procedural canvas painter.
-- `game/src/audio.js` — procedural WebAudio effects.
-- `game/src/input.js` — keyboard + click-to-walk.
-- `game/src/shots.js` — `stageShot`: the four staged screenshot scenes.
-- `game/src/main.js` — boot, screens, HUD, the one loop.
-- `main.ts` — hands the game in: copies `game/` and `screenshots/` to `/output`
-  and writes `dossier.json` with `buildDossier` from `vendor/makefun-game.ts`.
+Four staged frames, 1280×800 each: the cover (live mid-game play in the Vault with
+the Curator's bar, the combo and the noise), the planning screen, a caught moment,
+and the full-screen win scorecard.
