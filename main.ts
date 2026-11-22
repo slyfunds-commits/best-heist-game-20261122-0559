@@ -1,54 +1,53 @@
-// Velvet Vault — The Midnight Heist, round 3. The entry program: it gathers every
-// source file of the game and writes them to /output, where the make.fun kit
-// reads them as the entry. Nothing here is generated at run time — the game itself
-// is the files listed below, each one written by hand for this round.
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+// Velvet Vault — The Midnight Heist, round 4. The entry program.
+//
+// Rounds 2 and 3 scored NULL for the same reason: their main.ts only copied the
+// game files to /output, so the scorer had nothing to judge — no dossier.json,
+// no screenshots/. The judge reads a dossier, not the repo. This round restores
+// the hand-in the kit's RULES.txt describes, in three steps: the whole game
+// directory, the whole screenshots directory, and a dossier.json built from
+// exactly that output, so what the scorer rebuilds from our output matches the
+// dossier we hand it byte for byte. The game itself is untouched.
+import { cpSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildDossier } from './vendor/makefun-game.ts';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const repoRoot = dirname(fileURLToPath(import.meta.url));
+const outDir =
+  process.env.MAKEFUN_OUTPUT_DIR ?? process.env.MAKEFUN_OUTPUT ?? '/output';
 
-// Every source file of the game, in the order it is written out. Round 3 keeps
-// the round-1 shape exactly — sixteen one-job files in game/src, the entry point
-// among them, nothing stray at the game root — with the round-2 systems folded
-// into the files they belong to: the combo lives in loot.js, the modes in
-// config.js, the noise meter in audio.js, the upgrade pick in stages.js, and
-// THE CURATOR lives in world.js.
-const FILES = [
-  'game/index.html',
-  'game/src/config.js',
-  'game/src/stages.js',
-  'game/src/routes.js',
-  'game/src/patrols.js',
-  'game/src/cones.js',
-  'game/src/alarm.js',
-  'game/src/loot.js',
-  'game/src/tools.js',
-  'game/src/crew.js',
-  'game/src/audio.js',
-  'game/src/input.js',
-  'game/src/random.js',
-  'game/src/world.js',
-  'game/src/render.js',
-  'game/src/shots.js',
-  'game/src/main.js',
-];
+// The gate caps the scorer hands buildDossier (competition.yaml, gate "valid").
+const CAPS = {
+  text_max_bytes: 163840,
+  screenshots: { max: 4, max_bytes: 262144 },
+  game_max_files: 993,
+  game_max_bytes: 50331648,
+  game_path_max_bytes: 1000,
+};
 
-const OUT = process.env.MAKEFUN_OUTPUT || '/output';
+function handIn() {
+  mkdirSync(outDir, { recursive: true });
 
-function main() {
-  if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
-  let total = 0;
-  for (const rel of FILES) {
-    const src = join(__dirname, rel);
-    const text = readFileSync(src, 'utf8');
-    const dest = join(OUT, rel);
-    mkdirSync(dirname(dest), { recursive: true });
-    writeFileSync(dest, text, 'utf8');
-    total += Buffer.byteLength(text, 'utf8');
-    console.log(`wrote ${rel} (${Buffer.byteLength(text, 'utf8')} bytes)`);
-  }
-  console.log(`Velvet Vault round 3: ${FILES.length} files, ${total} bytes -> ${OUT}`);
+  // 1. The game, whole — every file under game/, nothing hand-listed.
+  rmSync(join(outDir, 'game'), { recursive: true, force: true });
+  cpSync(join(repoRoot, 'game'), join(outDir, 'game'), { recursive: true });
+
+  // 2. The renders, whole — clearing stale shots first so the output holds
+  // exactly the four jpgs in screenshots/, the first by name the cover.
+  rmSync(join(outDir, 'screenshots'), { recursive: true, force: true });
+  cpSync(join(repoRoot, 'screenshots'), join(outDir, 'screenshots'), {
+    recursive: true,
+  });
+
+  // 3. The dossier the judge reads. It is built from the output just written —
+  // game/ and screenshots/ as they now stand — so it is byte for byte what the
+  // scorer's own buildDossier call produces from the same output.
+  const dossier = buildDossier(outDir, CAPS);
+  writeFileSync(join(outDir, 'dossier.json'), dossier);
+
+  console.log(
+    `Velvet Vault round 4: game/ + screenshots/ + dossier.json (${dossier.length} bytes) -> ${outDir}`,
+  );
 }
 
-main();
+handIn();
