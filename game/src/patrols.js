@@ -1,11 +1,11 @@
 // The six threats and how each one moves. PATROLLER walks a fixed route of
-// waypoints. HOUND chases on sight and gives up when it loses you — and it slides
-// along walls while it chases, never through them: the catch has to be fair.
-// WRAITH walks through walls, slow and patient. DRONE turns right at every wall
-// and sweeps the halls. CAMERA is wall-mounted and sweeps its cone back and
-// forth. THE CURATOR is the boss: he walks a loop around the vault and his
-// temper rises with the crack — his movement lives in boss.js, his legend line
-// lives here.
+// waypoints. HOUND chases on sight and gives up when it loses you — and it
+// slides along walls while it chases, never through them, so the catch stays
+// fair. WRAITH walks through walls, slow and patient. DRONE turns right at
+// every wall and sweeps the halls. CAMERA is wall-mounted and sweeps its cone
+// back and forth. THE CURATOR is the boss: he walks a loop around the vault and
+// his temper rises with the crack — his movement lives in world.js, his legend
+// line lives here.
 import { TILE, GUARD_SPEED, HOUND_SPEED, WRAITH_SPEED, DRONE_SPEED } from './config.js';
 import { stageTileAt, stageTileCenter } from './stages.js';
 
@@ -38,7 +38,6 @@ export function createGuard(def, stage) {
       speed: WRAITH_SPEED, phase: 0,
     };
   }
-  // DRONE: flies a wall-following loop, turning right whenever blocked.
   return { ...base, x: home.x, y: home.y, dir: def.dir ?? 0, speed: DRONE_SPEED };
 }
 
@@ -50,7 +49,7 @@ export function createCamera(def, stage) {
   };
 }
 
-function moveToward(entity, tx, ty, speed, dt) {
+function stepToward(entity, tx, ty, speed, dt) {
   const dx = tx - entity.x;
   const dy = ty - entity.y;
   const dist = Math.hypot(dx, dy);
@@ -62,9 +61,8 @@ function moveToward(entity, tx, ty, speed, dt) {
   return dist - step < 2;
 }
 
-// The hound's wall test: the same circle-vs-wall check the thief uses, and a
-// guard may not enter a vent or a balcony either. A chasing hound that phases
-// through walls is not a fair catch.
+// The wall test the thief uses, for guards too: a guard may not enter a vent or
+// a balcony either. A chasing hound that phases through walls is not a fair catch.
 function guardBlocked(stage, x, y) {
   const radius = 12;
   const minTx = Math.floor((x - radius) / TILE);
@@ -83,8 +81,8 @@ function guardBlocked(stage, x, y) {
   return false;
 }
 
-// Slide toward a point: try x, then y, each blocked by walls — the hound
-// rounds corners instead of walking through them.
+// Slide toward a point: try x, then y, each blocked by walls — the hound rounds
+// corners instead of walking through them.
 function slideToward(guard, stage, tx, ty, speed, dt) {
   const dx = tx - guard.x;
   const dy = ty - guard.y;
@@ -108,7 +106,7 @@ function tileBlocked(stage, x, y) {
 
 function updatePatroller(guard, dt) {
   const target = guard.waypoints[guard.waypointIndex];
-  if (moveToward(guard, target.x, target.y, guard.speed, dt)) {
+  if (stepToward(guard, target.x, target.y, guard.speed, dt)) {
     guard.waypointIndex = (guard.waypointIndex + 1) % guard.waypoints.length;
   }
 }
@@ -128,7 +126,6 @@ function updateHound(guard, stage, seesThief, thief, dt) {
 }
 
 function updateWraith(guard, dt) {
-  // The wraith drifts a slow circle around its home — through walls, so no collision.
   guard.phase += dt * 0.35;
   const radius = 90;
   const nx = guard.homeX + Math.cos(guard.phase) * radius;
@@ -143,7 +140,7 @@ function updateDrone(guard, stage, dt) {
   const aheadX = guard.x + Math.cos(guard.dir) * (guard.speed * dt + 14);
   const aheadY = guard.y + Math.sin(guard.dir) * (guard.speed * dt + 14);
   if (tileBlocked(stage, aheadX, aheadY)) {
-    guard.dir += RIGHT_TURN; // turns right at every wall
+    guard.dir += RIGHT_TURN;
   } else {
     guard.x += Math.cos(guard.dir) * guard.speed * dt;
     guard.y += Math.sin(guard.dir) * guard.speed * dt;
@@ -159,7 +156,7 @@ export function updatePatrol(guard, stage, seesThief, thief, dt) {
 }
 
 export function updateCamera(camera, dt, jammed) {
-  if (jammed) return; // a jammed camera holds still, cone dark
+  if (jammed) return;
   camera.phase += dt * 0.55;
   camera.angle = camera.baseAngle + Math.sin(camera.phase) * camera.sweep;
 }

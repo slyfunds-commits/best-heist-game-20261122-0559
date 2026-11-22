@@ -10,26 +10,12 @@ import { drawWorld } from './render.js';
 import { STAGES, stageTileCenter } from './stages.js';
 import { TILE, SCREEN_WIDTH, SCREEN_HEIGHT } from './config.js';
 
-function makeCanvas() {
-  return { canvas: null, ctx: null };
-}
-
-function stageToCanvas(ctx, world, time) {
-  drawWorld(ctx, world, time);
-}
-
 function stageAt(ctx, world, time, thiefTx, thiefTy, setup) {
   const pos = stageTileCenter(thiefTx, thiefTy);
   world.thief.x = pos.x;
   world.thief.y = pos.y;
   if (setup) setup(world);
-  stageToCanvas(ctx, world, time);
-}
-
-function setThiefAt(world, tx, ty) {
-  const pos = stageTileCenter(tx, ty);
-  world.thief.x = pos.x;
-  world.thief.y = pos.y;
+  drawWorld(ctx, world, time);
 }
 
 // The cover: live mid-game play in the Vault, third stage — the room, the guards
@@ -39,21 +25,17 @@ export function stageCover(canvas) {
   const ctx = canvas.getContext('2d');
   const world = createWorld(2026, 'heist');
   startStage(world, 2, 'vent');
-  // The thief stands at (15,13), on the vault's left side: one tile down from
-  // (15,12) so his YOU label stacks under the vault's VAULT — LOCKED label
-  // instead of printing across it and the Curator's name.
   stageAt(ctx, world, 1.2, 15, 13, (w) => {
-    w.crackProgress = 1.6;
-    w.lootValue = 2400;
-    w.score = 2840;
+    w.crackProgress = 1.8;
+    w.lootValue = 2500;
+    w.score = 2960;
     w.combo.count = 3;
     w.combo.totalBonus = 500;
     w.combo.best = 3;
-    w.noise.value = 0.42;
-    w.alarm.value = 0.55;
-    w.boss.hp = 62;
+    w.noise.value = 0.45;
+    w.alarm.value = 0.58;
+    w.boss.hp = 58;
     w.boss.phase = 2;
-    // Give the cover two pieces already taken so the vault reads as ready.
     w.loot[0].taken = true;
     w.loot[1].taken = true;
   });
@@ -84,9 +66,9 @@ export function stageCaught(canvas) {
     w.alarm.spotted = true;
     w.combo.count = 2;
     w.combo.totalBonus = 250;
-    w.noise.value = 0.78;
-    w.lootValue = 950;
-    w.score = 1200;
+    w.noise.value = 0.82;
+    w.lootValue = 1100;
+    w.score = 1350;
   });
   return world;
 }
@@ -99,15 +81,15 @@ export function stageWin(canvas) {
   startStage(world, 2, 'main');
   stageAt(ctx, world, 2.2, 3, 13, (w) => {
     w.stageCleared = [true, true, true];
-    w.stageLoot = [1300, 1550, 2900];
-    w.lootValue = 5750;
-    w.score = 8120;
+    w.stageLoot = [1350, 1600, 2950];
+    w.lootValue = 5900;
+    w.score = 8240;
     w.won = true;
     w.combo.best = 5;
     w.combo.totalBonus = 1250;
-    w.timeUsed = 238;
+    w.timeUsed = 241;
   });
   return world;
 }
 
-export { makeCanvas, SCREEN_WIDTH, SCREEN_HEIGHT };
+export { SCREEN_WIDTH, SCREEN_HEIGHT };

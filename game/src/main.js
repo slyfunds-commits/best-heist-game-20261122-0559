@@ -1,26 +1,29 @@
-// Velvet Vault round 2 — entry point. Wires the page to the world: the planning
+// Velvet Vault round 3 — entry point. Wires the page to the world: the planning
 // screen (mode select, route select, THREATS / TOOLS / CREW panels), the fixed-step
 // loop, the HUD (MODE, SCORE, LOOT, LIVES, TIME, COMBO, NOISE, ALARM, BEST), the
 // SPEND THE LOOT overlay between stages, and the full-screen win scorecard with
 // the per-stage breakdown and the BEST per mode. BEST is saved per mode on this
 // machine. Nothing here writes to the repo; it only reads the world and draws it.
-import { createWorld, startStage, stepWorld, applyUpgrade } from './src/world.js';
+//
+// Staging: ?shot=cover|plan|caught|win paints one of the four entry screenshots
+// from a real world state and sets window.__shotReady — the screenshot driver
+// waits on it. It changes nothing about live play.
+import { createWorld, startStage, stepWorld, applyUpgrade } from './world.js';
 import {
   EVENT_LOOT, EVENT_SPOTTED, EVENT_STANDDOWN, EVENT_VAULT,
   EVENT_STAGE, EVENT_WIN, EVENT_LOST_LIFE, EVENT_OVER, EVENT_TOOL, EVENT_BOSS,
-} from './src/world.js';
-import { createRenderer } from './src/render.js';
-import { createInput, ACTION_CONFIRM, ACTION_PAUSE, ACTION_CRACK, ACTION_TOOL1, ACTION_TOOL2, ACTION_TOOL3, ACTION_MUTE } from './src/input.js';
-import { createAudio } from './src/audio.js';
-import { THREAT_TYPES } from './src/patrols.js';
-import { TOOLS } from './src/tools.js';
-import { CREW } from './src/crew.js';
-import { MODES, modeById } from './src/modes.js';
-import { STAGES } from './src/stages.js';
-import { comboMultiplier, comboBonusText } from './src/combo.js';
-import { noiseLabel } from './src/noise.js';
-import { alarmLabel, wantedLevel } from './src/alarm.js';
-import { STEP, TIME_BONUS_PER_SEC } from './src/config.js';
+} from './world.js';
+import { createRenderer } from './render.js';
+import { createInput, ACTION_CONFIRM, ACTION_PAUSE, ACTION_CRACK, ACTION_TOOL1, ACTION_TOOL2, ACTION_TOOL3, ACTION_MUTE } from './input.js';
+import { createAudio, noiseLabel } from './audio.js';
+import { THREAT_TYPES } from './patrols.js';
+import { TOOLS } from './tools.js';
+import { CREW } from './crew.js';
+import { MODES, modeById, STEP, TIME_BONUS_PER_SEC } from './config.js';
+import { STAGES } from './stages.js';
+import { comboMultiplier, comboBonusText } from './loot.js';
+import { alarmLabel, wantedLevel } from './alarm.js';
+import { stageCover, stagePlan, stageCaught, stageWin } from './shots.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('game');
@@ -35,7 +38,6 @@ let screen = 'plan';
 let paused = false;
 let acc = 0;
 let lastTime = 0;
-let lastEvents = 0;
 
 function bestKey(mode) {
   return `velvet-vault-best-${mode}`;
@@ -148,8 +150,6 @@ function showWin() {
   const rows = STAGES.map((stage, i) => (
     `<tr><td>${stage.name}</td><td>$${world.stageLoot[i]}</td><td>${world.stageCleared[i] ? 'CLEARED' : '—'}</td></tr>`
   )).join('');
-  // Everything that is not raw loot or combo bonus — vault cracks, stage-clear
-  // and time bonuses — is one line, computed so the breakdown adds up exactly.
   const other = Math.round(world.score / world.mode.scoreMult - world.lootValue - world.combo.totalBonus);
   $('win-breakdown').innerHTML = rows
     + `<tr><td>COMBO bonuses (best ×${world.combo.best})</td><td>$${world.combo.totalBonus}</td><td></td></tr>`
@@ -179,6 +179,9 @@ function handleEvents(events) {
 }
 
 function loop(now) {
+  // The loop reschedules itself first, so no screen change can ever kill it:
+  // the upgrade intermission only pauses the stepping, it never stops the loop.
+  window.requestAnimationFrame(loop);
   if (screen !== 'play') return;
   const dt = Math.min(0.1, (now - lastTime) / 1000);
   lastTime = now;
@@ -193,23 +196,26 @@ function loop(now) {
   }
   if (!paused && world && !world.won && !world.over && !world.upgradePending) {
     acc += dt;
+    // A keypress is one action: it lands on the first fixed step of the frame
+    // only, so a slow frame never fires the same tool twice.
+    let firstStep = true;
     while (acc >= STEP) {
       acc -= STEP;
+      const stepActions = firstStep ? actions : 0;
+      firstStep = false;
       const events = stepWorld(world, STEP, {
         direction: () => input.direction(),
         running: () => input.running(),
-        takeActions: () => actions,
+        takeActions: () => stepActions,
         cracking: input.isHeld('KeyE'),
         takeClickTarget: () => input.takeClickTarget(),
       });
-      lastEvents = events;
       if (events) handleEvents(events);
       if (world.won || world.over || world.upgradePending) break;
     }
   }
   renderer.draw(world, now / 1000);
   syncHud();
-  if (screen === 'play') window.requestAnimationFrame(loop);
 }
 
 fillLists();
@@ -231,3 +237,27 @@ $('route-balcony').addEventListener('click', () => setRoute('balcony'));
 $('start-btn').addEventListener('click', startRun);
 $('again-btn').addEventListener('click', () => { setMode(modeId); show('plan'); });
 $('retry-btn').addEventListener('click', () => { setMode(modeId); show('plan'); });
+
+// Screenshot staging: ?shot=cover|plan|caught|win paints one entry frame from a
+// real world state and flags it ready for the driver.
+const shotParam = new URLSearchParams(window.location.search).get('shot');
+if (shotParam) {
+  if (shotParam === 'cover') {
+    world = stageCover(canvas);
+    show('play');
+    syncHud();
+  } else if (shotParam === 'plan') {
+    world = stagePlan(canvas);
+    show('plan');
+  } else if (shotParam === 'caught') {
+    world = stageCaught(canvas);
+    show('play');
+    syncHud();
+    $('hint').textContent = 'SPOTTED — break line of sight!';
+  } else if (shotParam === 'win') {
+    world = stageWin(canvas);
+    showWin();
+    syncHud();
+  }
+  window.__shotReady = true;
+}

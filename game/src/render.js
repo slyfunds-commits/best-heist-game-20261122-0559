@@ -10,7 +10,7 @@ import { STAGES, stageTileAt } from './stages.js';
 import { conePoints } from './cones.js';
 import { vaultReady, vaultPosition, exitPosition } from './loot.js';
 import { THREAT_TYPES } from './patrols.js';
-import { bossSweep, bossSecondCone, bossPhaseLabel } from './boss.js';
+import { bossSweep, bossSecondCone, bossPhaseLabel } from './world.js';
 
 const WALL_TOP = '#c9a227';
 
@@ -24,7 +24,7 @@ function threatColor(type) {
   return (THREAT_TYPES.find((t) => t.type === type) || { color: '#e8b23a' }).color;
 }
 
-function drawFloor(ctx, stage) {
+function paintFloor(ctx, stage) {
   const look = stage.look;
   for (let ty = 0; ty < ROWS; ty += 1) {
     for (let tx = 0; tx < COLS; tx += 1) {
@@ -84,7 +84,6 @@ function drawFloor(ctx, stage) {
         ctx.arc(x + 14, y + 14, 4, 0, Math.PI * 2);
         ctx.fill();
       }
-      // A speck of marble veining, deterministic per tile.
       const h = hash(tx, ty);
       if (h > 0.72) {
         ctx.strokeStyle = 'rgba(255,255,255,0.06)';
@@ -95,7 +94,6 @@ function drawFloor(ctx, stage) {
       }
     }
   }
-  // The runner down the middle of the hall, in this room's rug colour.
   ctx.fillStyle = look.rug;
   ctx.fillRect(10 * TILE, 2 * TILE, TILE, 12 * TILE);
   ctx.strokeStyle = look.rugTrim;
@@ -105,8 +103,7 @@ function drawFloor(ctx, stage) {
   ctx.globalAlpha = 1;
 }
 
-function drawProps(ctx, stage, time) {
-  // Busts in the Lobby, glass cases in the Gallery, chandeliers in the Vault.
+function paintProps(ctx, stage, time) {
   const look = stage.look;
   ctx.textAlign = 'center';
   for (let ty = 1; ty < ROWS - 1; ty += 1) {
@@ -132,7 +129,6 @@ function drawProps(ctx, stage, time) {
         ctx.arc(x, y, 3, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        // Chandeliers: a gold ring with a flicker of candlelight.
         const flick = 0.7 + Math.sin(time * 3 + tx + ty) * 0.3;
         ctx.globalAlpha = flick;
         ctx.strokeStyle = '#ffd75e';
@@ -151,8 +147,7 @@ function drawProps(ctx, stage, time) {
   }
 }
 
-function drawPaintings(ctx, stage) {
-  // Framed paintings hang on wall faces that border the floor, in this room's palette.
+function paintPaintings(ctx, stage) {
   const look = stage.look;
   ctx.textAlign = 'center';
   for (let ty = 1; ty < ROWS - 1; ty += 1) {
@@ -170,13 +165,12 @@ function drawPaintings(ctx, stage) {
   }
 }
 
-function drawVaultAndExit(ctx, world) {
+function paintVaultAndExit(ctx, world) {
   const stage = STAGES[world.stageIndex];
   const vault = vaultPosition(stage);
   const exit = exitPosition(stage);
   const ready = vaultReady(world.loot, stage.lootTarget);
 
-  // Vault: a big gold door with a dial.
   ctx.save();
   ctx.translate(vault.x, vault.y);
   ctx.fillStyle = '#3a2f10';
@@ -215,7 +209,6 @@ function drawVaultAndExit(ctx, world) {
   }
   ctx.restore();
 
-  // Exit: the green door.
   ctx.save();
   ctx.translate(exit.x, exit.y);
   ctx.fillStyle = world.exitOpen ? '#1f7a3a' : '#2a4a2a';
@@ -230,7 +223,7 @@ function drawVaultAndExit(ctx, world) {
   ctx.restore();
 }
 
-function drawLoot(ctx, world, time) {
+function paintLoot(ctx, world, time) {
   ctx.textAlign = 'center';
   for (const item of world.loot) {
     if (item.taken) continue;
@@ -243,7 +236,6 @@ function drawLoot(ctx, world, time) {
     ctx.beginPath();
     ctx.arc(item.x, item.y + bob, glow, 0, Math.PI * 2);
     ctx.fill();
-    // An animated glint: a four-point sparkle that flashes as it turns.
     const spark = 0.4 + Math.abs(Math.sin(time * 2.4 + item.bobPhase)) * 0.6;
     ctx.save();
     ctx.globalAlpha = spark;
@@ -274,7 +266,7 @@ function drawLoot(ctx, world, time) {
   }
 }
 
-function drawCone(ctx, x, y, angle, range, halfAngle, color, dark) {
+function paintCone(ctx, x, y, angle, range, halfAngle, color, dark) {
   const cone = conePoints({ x, y, angle, range, halfAngle });
   ctx.beginPath();
   ctx.moveTo(cone[0].x, cone[0].y);
@@ -284,13 +276,13 @@ function drawCone(ctx, x, y, angle, range, halfAngle, color, dark) {
   ctx.fill();
 }
 
-function drawGuard(ctx, guard, world) {
+function paintGuard(ctx, guard, world) {
   const color = threatColor(guard.type);
   const sees = guard.state === 'chase';
   const blinded = world.smokeTimer > 0;
   const range = guard.type === 'DRONE' ? CAMERA_RANGE : CONE_RANGE;
   if (guard.type !== 'WRAITH') {
-    drawCone(ctx, guard.x, guard.y, guard.angle, range, CONE_HALF_ANGLE,
+    paintCone(ctx, guard.x, guard.y, guard.angle, range, CONE_HALF_ANGLE,
       sees ? 'rgba(255,60,60,0.30)' : blinded ? 'rgba(120,120,130,0.08)' : 'rgba(232,178,58,0.16)',
       blinded);
   }
@@ -334,7 +326,6 @@ function drawGuard(ctx, guard, world) {
     ctx.fill();
   }
   ctx.restore();
-  // Facing tick + name tag.
   ctx.strokeStyle = color;
   ctx.lineWidth = 3;
   ctx.beginPath();
@@ -353,17 +344,15 @@ function drawGuard(ctx, guard, world) {
   }
 }
 
-function drawBoss(ctx, boss, world) {
+function paintBoss(ctx, boss, world) {
   const half = bossSweep(boss);
   const blinded = world.smokeTimer > 0;
-  // His cone: wide, gold, and in phase 3 a second cone off to the side.
-  drawCone(ctx, boss.x, boss.y, boss.angle, CURATOR_RANGE, half,
+  paintCone(ctx, boss.x, boss.y, boss.angle, CURATOR_RANGE, half,
     blinded ? 'rgba(120,120,130,0.08)' : 'rgba(255,215,94,0.20)', blinded);
   if (bossSecondCone(boss)) {
-    drawCone(ctx, boss.x, boss.y, boss.angle + 0.7, CURATOR_RANGE, half,
+    paintCone(ctx, boss.x, boss.y, boss.angle + 0.7, CURATOR_RANGE, half,
       blinded ? 'rgba(120,120,130,0.08)' : 'rgba(255,215,94,0.14)', blinded);
   }
-  // The man himself: bigger than any guard, gold-trimmed, crowned.
   ctx.save();
   ctx.translate(boss.x, boss.y);
   ctx.fillStyle = '#2a1f3d';
@@ -398,7 +387,6 @@ function drawBoss(ctx, boss, world) {
   ctx.font = 'bold 11px Georgia';
   ctx.textAlign = 'center';
   ctx.fillText('THE CURATOR', boss.x, boss.y - 30);
-  // His health bar, right above him.
   ctx.fillStyle = '#1b1530';
   ctx.fillRect(boss.x - 30, boss.y - 44, 60, 8);
   ctx.fillStyle = boss.hp > 50 ? '#e82a2a' : '#ff8c42';
@@ -408,7 +396,7 @@ function drawBoss(ctx, boss, world) {
   ctx.fillText(`PHASE ${boss.phase}/3`, boss.x, boss.y - 48);
 }
 
-function drawBossBar(ctx, world) {
+function paintBossBar(ctx, world) {
   if (!world.boss) return;
   const barW = 320;
   const x0 = (860 - barW) / 2;
@@ -428,9 +416,9 @@ function drawBossBar(ctx, world) {
   ctx.strokeRect(x0, y0 + 2, barW, 10);
 }
 
-function drawCamera(ctx, camera, world) {
+function paintCamera(ctx, camera, world) {
   const jammed = world.jammerTimer > 0;
-  drawCone(ctx, camera.x, camera.y, camera.angle, CAMERA_RANGE, CONE_HALF_ANGLE,
+  paintCone(ctx, camera.x, camera.y, camera.angle, CAMERA_RANGE, CONE_HALF_ANGLE,
     jammed ? 'rgba(120,120,130,0.07)' : 'rgba(255,140,66,0.17)', jammed);
   ctx.save();
   ctx.translate(camera.x, camera.y);
@@ -451,7 +439,7 @@ function drawCamera(ctx, camera, world) {
   ctx.fillText(jammed ? `${camera.name} — JAMMED` : camera.name, camera.x, camera.y - 20);
 }
 
-function drawThief(ctx, thief, world) {
+function paintThief(ctx, thief, world) {
   if (world.disguiseTimer > 0) {
     ctx.save();
     ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 120) * 0.1;
@@ -467,7 +455,6 @@ function drawThief(ctx, thief, world) {
   ctx.arc(thief.x, thief.y, 6, 0, Math.PI * 2);
   ctx.fillStyle = '#f3e9c8';
   ctx.fill();
-  // Mask + facing.
   ctx.strokeStyle = '#1b1530';
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -487,7 +474,7 @@ function drawThief(ctx, thief, world) {
   ctx.fillText(world.disguiseTimer > 0 ? 'YOU — DISGUISED' : 'YOU', thief.x, thief.y - 20);
 }
 
-function drawSmoke(ctx, world) {
+function paintSmoke(ctx, world) {
   if (world.smokeTimer <= 0) return;
   ctx.save();
   ctx.globalAlpha = 0.35;
@@ -501,7 +488,7 @@ function drawSmoke(ctx, world) {
   ctx.restore();
 }
 
-function drawPopups(ctx, world) {
+function paintPopups(ctx, world) {
   ctx.textAlign = 'center';
   ctx.font = 'bold 13px Georgia';
   for (const popup of world.popups) {
@@ -512,13 +499,11 @@ function drawPopups(ctx, world) {
   ctx.globalAlpha = 1;
 }
 
-function drawRouteTags(ctx) {
+function paintRouteTags(ctx) {
   ctx.textAlign = 'left';
   ctx.font = 'bold 10px Georgia';
   ctx.fillStyle = 'rgba(255,233,163,0.75)';
   ctx.fillText('VENT SHAFT', 2 * TILE + 4, 3 * TILE - 6);
-  // BALCONY sits at the far right end of the walkway: the boss bar covers the
-  // centre of the top edge (x 260–600), so a tag at col 14 would hide under it.
   ctx.fillText('BALCONY', 18 * TILE + 4, TILE + 12);
   ctx.fillStyle = 'rgba(207,196,160,0.7)';
   ctx.fillText('MAIN FLOOR', TILE + 4, 15 * TILE - 8);
@@ -536,20 +521,19 @@ export function createRenderer(canvas) {
 export function drawWorld(ctx, world, time) {
   const stage = STAGES[world.stageIndex];
   ctx.clearRect(0, 0, 860, 640);
-  drawFloor(ctx, stage);
-  drawProps(ctx, stage, time);
-  drawPaintings(ctx, stage);
-  drawVaultAndExit(ctx, world);
-  drawLoot(ctx, world, time);
-  drawRouteTags(ctx);
-  for (const camera of world.cameras) drawCamera(ctx, camera, world);
-  for (const guard of world.guards) drawGuard(ctx, guard, world);
-  if (world.boss) drawBoss(ctx, world.boss, world);
-  drawThief(ctx, world.thief, world);
-  drawSmoke(ctx, world);
-  drawPopups(ctx, world);
-  drawBossBar(ctx, world);
-  // Stage banner, top-left inside the canvas.
+  paintFloor(ctx, stage);
+  paintProps(ctx, stage, time);
+  paintPaintings(ctx, stage);
+  paintVaultAndExit(ctx, world);
+  paintLoot(ctx, world, time);
+  paintRouteTags(ctx);
+  for (const camera of world.cameras) paintCamera(ctx, camera, world);
+  for (const guard of world.guards) paintGuard(ctx, guard, world);
+  if (world.boss) paintBoss(ctx, world.boss, world);
+  paintThief(ctx, world.thief, world);
+  paintSmoke(ctx, world);
+  paintPopups(ctx, world);
+  paintBossBar(ctx, world);
   ctx.fillStyle = 'rgba(12,10,20,0.72)';
   ctx.fillRect(0, 0, 300, 26);
   ctx.fillStyle = '#ffe9a3';

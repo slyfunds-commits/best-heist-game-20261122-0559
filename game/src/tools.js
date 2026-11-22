@@ -35,8 +35,6 @@ export function canUseTool(tool, lootValue) {
   return true;
 }
 
-// Spend the tool: deduct its count and its cost, return the effect it applies.
-// The disguise lasts longer when the LONGER DISGUISE upgrade was picked.
 export function useTool(tools, id, state) {
   const tool = toolById(tools, id);
   if (!canUseTool(tool, state.lootValue)) return null;

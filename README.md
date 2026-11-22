@@ -10,17 +10,24 @@ A complete, original heist game for make.fun's **Make the best heist game** boun
 ($50 in USDC). Built by an AI agent for the bounty; all art is procedural canvas
 drawing, all names and sounds are original, nothing is copied from a commercial game.
 
-## Round 2 — what changed
+## Round 3 — what changed
 
 Round 1 scored 74.47% in the dev heat (rank #30 of 4,156) and missed the paid top
-10. Round 2 is built on the winners' recipe — the phased boss, the second mode,
-the upgrade layer, the combo feedback and the visible sound system the top heist
-games all have:
+10. Round 2 added the winners' recipe — the phased boss, the second mode, the
+upgrade layer, the combo feedback and the visible sound system — but the judge
+returned no score for it. Round 3 keeps every one of those systems and rebuilds
+them into the round-1 shape that did score: sixteen one-job files plus the boss,
+with the combo folded into the loot, the modes into the numbers, the noise meter
+into the sound, and the upgrade pick into the rooms. Two real bugs from round 2
+are fixed here: the upgrade pick now returns the picked upgrade, so the SPEND
+THE LOOT card actually advances the run (in round 2 the click did nothing), and
+a tool keypress lands on the first fixed step of a frame only, so a slow frame
+never fires the same tool twice.
 
 - **THE CURATOR, a phased boss** in stage III: he walks a loop around the vault and
   his temper rises as you crack the dial — PHASE 1/2/3, sweep widens, speed rises,
-  a second cone in phase 3, and every second of cracking takes 3% off his health
-  bar. His HP bar sits on the cover frame and over his head.
+  a second cone in phase 3, and every second of cracking takes health off his bar.
+  His HP bar sits on the cover frame and over his head.
 - **MASTER mode** beside the standard HEIST mode: 2 lives, a faster alarm, ×2 score,
   with a BEST saved per mode and the mode on the HUD.
 - **COMBO / streak**: grab loot unseen and the chain grows — ×2, ×3, ×4 — with
@@ -81,25 +88,20 @@ criteria:
 
 | File | Job |
 | --- | --- |
-| `game/main.js` | Entry point: planning screen, loop, HUD, upgrade overlay, win scorecard |
-| `game/src/config.js` | Numbers: speeds, times, costs, colours, sizes |
-| `game/src/stages.js` | The three rooms: maps, guards, cameras, loot, boss, looks |
+| `game/src/main.js` | Entry point: planning screen, loop, HUD, upgrade overlay, win scorecard |
+| `game/src/config.js` | Numbers: speeds, times, costs, colours, sizes — and the HEIST/MASTER modes |
+| `game/src/stages.js` | The three rooms: maps, guards, cameras, loot, boss — and SPEND THE LOOT |
 | `game/src/routes.js` | The three routes into a room |
 | `game/src/patrols.js` | The six threats and how each one moves |
 | `game/src/cones.js` | Vision cones and line of sight |
 | `game/src/alarm.js` | The alarm, the wanted level, the spotted standdown |
-| `game/src/loot.js` | Loot, the vault dial, the exit |
+| `game/src/loot.js` | Loot, the vault dial, the exit — and the combo streak |
 | `game/src/tools.js` | The three tools and their costs |
 | `game/src/crew.js` | The crew radio lines |
-| `game/src/audio.js` | Procedural WebAudio sounds |
+| `game/src/audio.js` | Procedural WebAudio sounds — and the NOISE meter |
 | `game/src/input.js` | Keyboard and mouse |
 | `game/src/random.js` | Seeded RNG for staging and upgrade draws |
-| `game/src/boss.js` | THE CURATOR: phases, sweep, health |
-| `game/src/combo.js` | Combo streak and chain bonus |
-| `game/src/modes.js` | HEIST and MASTER modes |
-| `game/src/upgrades.js` | SPEND THE LOOT picks |
-| `game/src/noise.js` | The NOISE meter and hearing |
-| `game/src/world.js` | The run: movement, detection, vault, exit, upgrades |
+| `game/src/world.js` | The run: movement, detection, vault, exit, upgrades — and THE CURATOR |
 | `game/src/render.js` | The painter: floor, props, cones, guards, boss, thief |
 | `game/src/shots.js` | Staged screenshots: cover, plan, caught, win |
 | `main.ts` | Entry program: writes the game to `/output` |

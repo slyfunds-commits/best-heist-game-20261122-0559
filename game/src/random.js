@@ -1,6 +1,6 @@
-// A tiny seeded RNG (mulberry32) so a stage layout and a screenshot staging are
-// reproducible from one seed, and live play can take a fresh random seed. The
-// upgrade pick draws from it, so the three choices differ from run to run.
+// A tiny seeded RNG (mulberry32). One seed makes a whole run reproducible —
+// the upgrade draw, the screenshot staging — while live play takes a fresh
+// random seed each time. No other file keeps its own randomness.
 export function createRandom(seed) {
   let state = (seed >>> 0) || 0x9e3779b9;
   function next() {

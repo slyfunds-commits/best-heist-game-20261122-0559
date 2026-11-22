@@ -1,4 +1,4 @@
-// Velvet Vault — The Midnight Heist, round 2. The entry program: it gathers every
+// Velvet Vault — The Midnight Heist, round 3. The entry program: it gathers every
 // source file of the game and writes them to /output, where the make.fun kit
 // reads them as the entry. Nothing here is generated at run time — the game itself
 // is the files listed below, each one written by hand for this round.
@@ -8,12 +8,14 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Every source file of the game, in the order it is written out. The new systems
-// for round 2 are boss.js (the Curator), combo.js (streaks and floating scores),
-// modes.js (HEIST and MASTER), upgrades.js (SPEND THE LOOT) and noise.js (sound).
+// Every source file of the game, in the order it is written out. Round 3 keeps
+// the round-1 shape exactly — sixteen one-job files in game/src, the entry point
+// among them, nothing stray at the game root — with the round-2 systems folded
+// into the files they belong to: the combo lives in loot.js, the modes in
+// config.js, the noise meter in audio.js, the upgrade pick in stages.js, and
+// THE CURATOR lives in world.js.
 const FILES = [
   'game/index.html',
-  'game/main.js',
   'game/src/config.js',
   'game/src/stages.js',
   'game/src/routes.js',
@@ -26,14 +28,10 @@ const FILES = [
   'game/src/audio.js',
   'game/src/input.js',
   'game/src/random.js',
-  'game/src/boss.js',
-  'game/src/combo.js',
-  'game/src/modes.js',
-  'game/src/upgrades.js',
-  'game/src/noise.js',
   'game/src/world.js',
   'game/src/render.js',
   'game/src/shots.js',
+  'game/src/main.js',
 ];
 
 const OUT = process.env.MAKEFUN_OUTPUT || '/output';
@@ -50,7 +48,7 @@ function main() {
     total += Buffer.byteLength(text, 'utf8');
     console.log(`wrote ${rel} (${Buffer.byteLength(text, 'utf8')} bytes)`);
   }
-  console.log(`Velvet Vault round 2: ${FILES.length} files, ${total} bytes -> ${OUT}`);
+  console.log(`Velvet Vault round 3: ${FILES.length} files, ${total} bytes -> ${OUT}`);
 }
 
 main();

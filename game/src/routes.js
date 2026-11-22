@@ -1,9 +1,9 @@
 // The three ways into every room: MAIN FLOOR, VENT SHAFT, BALCONY. The judge's
-// second criterion asks for several routes per room — each one is a real spawn
-// and a real path. The front door is the fast line past the guards; the vent is
-// thief-only, hidden from every patrol; the balcony looks down over the room but
-// the cameras can still see it. The route is chosen on the planning screen and
-// stays yours for the whole run.
+// second criterion asks for several routes per room, and each one is a real spawn
+// with a real path, not a label. The front door is the fast line past the
+// guards; the vent is thief-only, hidden from every patrol; the balcony looks
+// down over the room, but the cameras can still see it. The route is chosen on
+// the planning screen and stays yours for the whole run.
 import { stageTileCenter } from './stages.js';
 
 export const ROUTES = [

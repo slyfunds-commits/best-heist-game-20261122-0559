@@ -1,10 +1,44 @@
-// Loot and the vault: every glowing piece has a name and a value, and the vault
-// only opens once the stage loot target is met. Stand at the vault and hold E to
-// crack it — three seconds on the dial — then reach the exit. Grabbing loot is
-// what pays for tools, and in stage III the same dial is what wounds the Curator:
-// every second of cracking is a point off his health bar.
-import { TILE, CRACK_SECONDS } from './config.js';
+// Loot, the vault and the combo. Every glowing piece has a name and a value,
+// and the vault only opens once the stage loot target is met. Stand at the vault
+// and hold E to crack it — three seconds on the dial — then reach the exit.
+// Grabbing loot is what pays for tools, and in stage III the same dial is what
+// wounds the Curator: every second of cracking is a point off his health bar.
+// The combo is the streak of loot grabbed without being seen: every grab in a
+// row raises the chain, and the chain pays — the nth grab in a row is worth its
+// loot plus 50 times (n - 1). Being spotted breaks the chain, the popup says so,
+// and the HUD shows the chain live. A quiet thief is a rich thief.
+import { TILE, CRACK_SECONDS, COMBO_BONUS_STEP } from './config.js';
 import { stageTileCenter } from './stages.js';
+
+export function createCombo() {
+  return { count: 0, best: 0, totalBonus: 0 };
+}
+
+export function addCombo(combo) {
+  combo.count += 1;
+  if (combo.count > combo.best) combo.best = combo.count;
+  const bonus = (combo.count - 1) * COMBO_BONUS_STEP;
+  combo.totalBonus += bonus;
+  return bonus;
+}
+
+export function comboMultiplier(combo) {
+  return Math.max(1, combo.count);
+}
+
+export function breakCombo(combo) {
+  if (combo.count <= 0) return false;
+  combo.count = 0;
+  return true;
+}
+
+export function comboLabel(combo) {
+  return combo.count > 0 ? `COMBO ×${combo.count}` : 'COMBO —';
+}
+
+export function comboBonusText(combo, bonus) {
+  return `+${bonus} COMBO ×${combo.count}`;
+}
 
 export function createLoot(stage) {
   return stage.loot.map((item) => ({

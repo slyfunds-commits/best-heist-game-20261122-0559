@@ -26,6 +26,71 @@ function tileCenter(tx, ty) {
   return { x: tx * TILE + TILE / 2, y: ty * TILE + TILE / 2 };
 }
 
+// SPEND THE LOOT — the upgrade pick between stages. After every stage but the
+// last, the crew lays three choices on the table and the thief picks one: another
+// smoke bomb, a slower alarm for the next room, a spare life, or a longer
+// disguise. The choice is spent loot turned into an edge, and the next stage
+// plays differently because of it. The panel names the pick on the planning
+// screen, so the upgrade layer is visible before the run even starts.
+// applyUpgrade RETURNS the picked upgrade — the planning screen advances on it.
+export const UPGRADES = [
+  {
+    id: 'smoke',
+    name: '+1 SMOKE BOMB',
+    blurb: 'One more smoke for the next room. Blind them again.',
+  },
+  {
+    id: 'calm',
+    name: 'SLOWER ALARM',
+    blurb: 'Grease the tripwires — the alarm climbs 25% slower next stage.',
+  },
+  {
+    id: 'life',
+    name: '+1 LIFE',
+    blurb: 'A spare heartbeat. The crew pulls you out one more time.',
+  },
+  {
+    id: 'disguise',
+    name: 'LONGER DISGUISE',
+    blurb: 'A better uniform — the disguise lasts 4 seconds longer.',
+  },
+];
+
+export function offerUpgrades(random) {
+  const pool = [...UPGRADES];
+  const picks = [];
+  while (pool.length > 0 && picks.length < 3) {
+    const i = Math.floor(random.next() * pool.length);
+    picks.push(pool.splice(i, 1)[0]);
+  }
+  return picks;
+}
+
+export function applyUpgrade(world, id) {
+  const found = UPGRADES.find((u) => u.id === id);
+  if (!found) return null;
+  if (id === 'smoke') {
+    const tool = world.tools.find((t) => t.id === 'smoke');
+    if (tool) tool.count += 1;
+    world.radio = 'IVY: “One more smoke in the pocket. Spend it well.”';
+  } else if (id === 'calm') {
+    world.alarmSlow = 0.75;
+    world.radio = 'WREN: “Tripwires greased. The alarm will climb slower now.”';
+  } else if (id === 'life') {
+    world.lives = Math.min(world.lives + 1, 4);
+    world.radio = 'MOSS: “Spare heartbeat bought. Don’t spend it fast.”';
+  } else if (id === 'disguise') {
+    world.disguiseBonus += 4;
+    world.radio = 'IVY: “Better uniform — the disguise holds four seconds longer.”';
+  }
+  world.upgradeTaken = id;
+  return found;
+}
+
+export function upgradeNames() {
+  return UPGRADES.map((u) => u.name).join(' · ');
+}
+
 export const STAGES = [
   {
     index: 0,
@@ -58,17 +123,17 @@ export const STAGES = [
       '#####################',
     ]),
     loot: [
-      { name: 'GILDED MASK', value: 400, tx: 10, ty: 4 },
-      { name: 'JADE SCARAB', value: 350, tx: 10, ty: 6 },
-      { name: 'SILVER CHALICE', value: 250, tx: 3, ty: 9 },
-      { name: 'MOON PEARL', value: 300, tx: 16, ty: 9 },
+      { name: 'GILDED MASK', value: 400, tx: 9, ty: 4 },
+      { name: 'JADE SCARAB', value: 350, tx: 11, ty: 6 },
+      { name: 'SILVER CHALICE', value: 250, tx: 4, ty: 9 },
+      { name: 'MOON PEARL', value: 300, tx: 15, ty: 9 },
     ],
     guards: [
       { type: 'PATROLLER', name: 'MARLOW', waypoints: [[8, 3], [11, 3], [11, 6], [8, 6]] },
-      { type: 'PATROLLER', name: 'BRYN', waypoints: [[17, 4], [17, 9], [19, 9], [19, 4]] },
+      { type: 'PATROLLER', name: 'BRYN', waypoints: [[17, 5], [17, 9], [19, 9], [19, 5]] },
     ],
     cameras: [
-      { name: 'CAM-1', tx: 6, ty: 13, angle: 0, sweep: 0.6 },
+      { name: 'CAM-1', tx: 6, ty: 12, angle: 0, sweep: 0.6 },
     ],
     vault: { tx: 17, ty: 13 },
     exit: { tx: 17, ty: 7 },
@@ -107,24 +172,21 @@ export const STAGES = [
       '#####################',
     ]),
     loot: [
-      // The Sunflower Canvas sits at (5,2), clear of KETTLE's patrol square
-      // (cols 8–11, rows 2–4): at (9,2) the guard's name printed on top of the
-      // painting's name whenever he crossed the top of his loop.
-      { name: 'SUNFLOWER CANVAS', value: 600, tx: 5, ty: 2 },
-      { name: 'RUBY CROWN', value: 700, tx: 18, ty: 4 },
-      { name: 'IVORY CHESS SET', value: 500, tx: 8, ty: 9 },
-      { name: 'GOLDEN LYRE', value: 600, tx: 16, ty: 9 },
-      { name: 'OPAL MASK', value: 400, tx: 3, ty: 9 },
+      { name: 'SUNFLOWER CANVAS', value: 600, tx: 4, ty: 2 },
+      { name: 'RUBY CROWN', value: 700, tx: 17, ty: 4 },
+      { name: 'IVORY CHESS SET', value: 500, tx: 9, ty: 9 },
+      { name: 'GOLDEN LYRE', value: 600, tx: 15, ty: 9 },
+      { name: 'OPAL MASK', value: 400, tx: 4, ty: 9 },
     ],
     guards: [
       { type: 'PATROLLER', name: 'KETTLE', waypoints: [[8, 2], [11, 2], [11, 4], [8, 4]] },
-      { type: 'PATROLLER', name: 'SABLE', waypoints: [[16, 4], [16, 9], [19, 9], [19, 4]] },
-      { type: 'HOUND', name: 'REX', home: [12, 8] },
+      { type: 'PATROLLER', name: 'SABLE', waypoints: [[16, 5], [16, 9], [19, 9], [19, 5]] },
+      { type: 'HOUND', name: 'REX', home: [13, 8] },
       { type: 'DRONE', name: 'WASP-7', home: [9, 6], dir: 0 },
     ],
     cameras: [
       { name: 'CAM-2', tx: 12, ty: 13, angle: 0, sweep: 0.6 },
-      { name: 'CAM-3', tx: 14, ty: 6, angle: Math.PI / 2, sweep: 0.7 },
+      { name: 'CAM-3', tx: 5, ty: 12, angle: Math.PI / 2, sweep: 0.7 },
     ],
     vault: { tx: 16, ty: 13 },
     exit: { tx: 18, ty: 7 },
@@ -163,17 +225,17 @@ export const STAGES = [
       '#####################',
     ]),
     loot: [
-      { name: 'CROWN JEWELS', value: 1200, tx: 7, ty: 2 },
-      { name: 'STAR SAPPHIRE', value: 900, tx: 18, ty: 4 },
-      { name: 'DRAGON EGG', value: 800, tx: 8, ty: 9 },
-      { name: "PHARAOH'S MASK", value: 700, tx: 16, ty: 9 },
-      { name: 'VELVET DIAMOND', value: 800, tx: 3, ty: 9 },
+      { name: 'CROWN JEWELS', value: 1200, tx: 6, ty: 2 },
+      { name: 'STAR SAPPHIRE', value: 900, tx: 17, ty: 4 },
+      { name: 'DRAGON EGG', value: 800, tx: 9, ty: 9 },
+      { name: "PHARAOH'S MASK", value: 700, tx: 15, ty: 9 },
+      { name: 'VELVET DIAMOND', value: 800, tx: 4, ty: 9 },
     ],
     guards: [
       { type: 'PATROLLER', name: 'VOSS', waypoints: [[8, 8], [11, 8], [11, 12], [8, 12]] },
-      { type: 'PATROLLER', name: 'MARLOW', waypoints: [[16, 6], [16, 9], [19, 9], [19, 6]] },
-      { type: 'HOUND', name: 'FANG', home: [12, 8] },
-      { type: 'WRAITH', name: 'SHADE', home: [8, 6] },
+      { type: 'PATROLLER', name: 'MARLOW', waypoints: [[16, 8], [16, 10], [19, 10], [19, 8]] },
+      { type: 'HOUND', name: 'FANG', home: [13, 8] },
+      { type: 'WRAITH', name: 'SHADE', home: [9, 6] },
       { type: 'DRONE', name: 'HORNET-2', home: [11, 4], dir: Math.PI },
     ],
     cameras: [

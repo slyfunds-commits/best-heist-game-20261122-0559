@@ -20,9 +20,6 @@ function angleDifference(a, b) {
 export function hasLineOfSight(stage, x0, y0, x1, y1) {
   const dist = Math.hypot(x1 - x0, y1 - y0);
   const steps = Math.max(1, Math.ceil(dist / 8));
-  // The watcher's own tile never blocks its view: cameras are wall-mounted,
-  // so their own wall tile is the mount, not an obstruction in front of the
-  // lens. Without this, every wall-mounted camera is blind in all directions.
   const startTx = Math.floor(x0 / TILE);
   const startTy = Math.floor(y0 / TILE);
   for (let i = 1; i < steps; i += 1) {
@@ -42,7 +39,7 @@ export function thiefInCone(stage, watcher, thief, range, halfAngle) {
   const dy = thief.y - watcher.y;
   const dist = Math.hypot(dx, dy);
   if (dist > range) return false;
-  if (dist < 26) return true; // touching the watcher is always seen
+  if (dist < 26) return true;
   const toThief = Math.atan2(dy, dx);
   if (Math.abs(angleDifference(toThief, watcher.angle)) > halfAngle) return false;
   return hasLineOfSight(stage, watcher.x, watcher.y, thief.x, thief.y);
@@ -56,7 +53,6 @@ export function cameraSeesThief(stage, camera, thief) {
   return thiefInCone(stage, camera, thief, CAMERA_RANGE, CONE_HALF_ANGLE);
 }
 
-// Sweep a camera's cone: its angle oscillates around its mount direction.
 export function sweepCone(camera, time) {
   return camera.baseAngle + Math.sin(time * 0.55 + camera.phase) * camera.sweep;
 }

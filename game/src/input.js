@@ -1,4 +1,4 @@
-// Keyboard + mouse input for Velvet Vault round 2. WASD or arrows move, Shift
+// Keyboard + mouse input for Velvet Vault round 3. WASD or arrows move, Shift
 // runs (loud — watch the noise meter), E cracks the vault, 1/2/3 fire tools, P
 // pauses, M mutes, Space or Enter confirms. Click-to-walk sets a target tile the
 // world steers toward. Actions are consumed once per frame, however many fixed

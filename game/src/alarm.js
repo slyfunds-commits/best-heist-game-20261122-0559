@@ -28,7 +28,6 @@ export function raiseAlarm(alarm, dt, seen, closeness, rateMult = 1) {
       alarm.spotted = false;
       return 'standdown';
     }
-    // Break line of sight and the alarm drops fast during the spotted window.
     if (!seen) alarm.value = Math.max(ALARM_STANDDOWN_AT, alarm.value - 0.35 * dt);
   }
   return null;

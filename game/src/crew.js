@@ -1,8 +1,8 @@
 // The crew on the radio: Wren on lookout, Moss on the getaway car, Ivy on the
 // safe. One line at a time, shown as a caption under the game — the still frames
 // get a voice, and the player always knows what just happened and what to do
-// next. New lines for the new systems: the Curator, the combo, the noise, the
-// upgrade pick, the MASTER run.
+// next. Lines cover the whole job: the Curator, the combo, the noise, the
+// upgrade pick, the MASTER run, the getaway.
 export const CREW = [
   { name: 'WREN', role: 'lookout — eyes on the whole floor' },
   { name: 'MOSS', role: 'driver — engine running out back' },
